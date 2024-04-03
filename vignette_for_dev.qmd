@@ -15,8 +15,10 @@ library(data.table)
 #todo add examples
 
 ```{r}
-policy_list <- create_policies(3,arms = 2)
-sigma <- matrix(c(1,1,1,NA), ncol = 2, nrow = 2)
+
+data <- assign_policy_label(data,arm1,arm2)
+policy_list <- rashomontva::create_policies_from_data(data, arm1, arm2)
+sigma <- matrix(c(1,1,1,1), ncol = 2, nrow = 2)
 
 edge_list <- lattice_edges(sigma, policy_list)
 
@@ -26,7 +28,13 @@ pruned_edge_list <- prune_edges(new_sigma,edge_list,policy_list)
 cc <- connected_components(length(pruned_edge_list),pruned_edge_list,policy_list)
 
 cc$as_list()
+str(cc$keys()[[1]])
+str(1)
+data %>% 
+  rowwise() %>% 
+  mutate(pool = cc$get(policy_label))
 
+str(data$policy_label[1])
 ```
 
 ```{r}
@@ -35,29 +43,32 @@ data <- data.frame(arm1 = c(1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,
                    value = runif(27))
 #searching rashomon set
 
-extract_pools <- function(policy_list, pool_list){
-  
-}
 
-policy_means <- function(data, ..., value){
+policy_means <- function(data, value, ...){
   
   #convert to data.table
   data %>% 
     group_by(...) %>% 
     summarize(mean = mean({{value}}),
-              n = n())
+              .groups = "drop", 
+              policy_label = policy_label[1])
+}
+#note: data argument here must be output from policy_means
+pool_means <- function(data, value, pool){
+  
+  data %>% 
+    group_by({{pool}}) %>% 
+    summarize(mean_pool = mean({{value}}))
 }
 
 pools_to_data <- function(data,policy_list, pools_dict, value){
   
   data %>% 
-    mutate(together = purrr::pmap(unname(dplyr::select(.,-{{value}})),c)) %>% 
-    dplyr::rowwise() %>% 
-    mutate(pools = pools_dict$get(unlist(together))) %>% 
-    select(-together) %>% 
-    ungroup()
+    rowwise() %>% 
+    mutate(pool = cc$get(policy_label))
+    
 }
-sigma[1,2:ncol(sigma)]
+
 
 partition_sigma <- function(i, j, sigma) {
   
@@ -68,19 +79,11 @@ partition_sigma <- function(i, j, sigma) {
   new_sigma
 }
 
-x %>% 
-  group_by(arm1,arm2,pools) %>% 
-  summarize(mean = mean(value),
-            pool = mean(pools)) %>% 
-  ungroup() %>% 
-  group_by(pool) %>% 
-  summarize(mean = mean(mean))
+M <- policy_means(data, value, arm1, arm2)
 
- pools_to_data(data, policy_list, cc, value)  %>% 
-  group_by(pools) %>% 
-  mutate(pool_mean = mean(value)) 
+M <- pools_to_data(M, policy_list, cc, value)
 
-str(as.numeric(unname(policy_list[[1]])))
+M <- pool_means(M, mean, pool)
 
 compute_B(data, value, sigma, i, j, policy_list, )
 ```

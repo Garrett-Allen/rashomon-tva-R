@@ -20,6 +20,30 @@ create_policies <- function(levels, arms = 0){
   asplit(as.matrix(df),1)
 
 }
+#' @import dplyr
+#' @import magrittr
+#' @export
+assign_policy_label <- function(data,...){
+  data %>%
+    group_by(...) %>%
+    mutate(policy_label = cur_group_id()) %>%
+    ungroup()
+}
+
+#' @import dplyr
+#' @import magrittr
+#' @export
+create_policies_from_data <- function(data,...){
+  mat <- data %>%
+    dplyr::select(...) %>%
+    group_by(...) %>%
+    mutate(policy_label = cur_group_id()) %>%
+    unique() %>%
+    arrange(policy_label) %>%
+    select(-policy_label) %>%
+    as.matrix()
+  asplit(mat, 1)
+}
 
 #'Calculates edgelist for Hasse diagram given sigma and a list of factor combinations (policies).
 #'
@@ -115,7 +139,7 @@ connected_components <- function(n, edges,policy_list){
 
   all_cc = collections::dict()
   for(i in 1:n){
-    all_cc$set(as.numeric(unname(policy_list[[i]])),parent[i])
+    all_cc$set(i,parent[i])
   }
   all_cc
 
