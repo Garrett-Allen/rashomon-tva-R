@@ -1,0 +1,86 @@
+---
+title: "rashomon_package"
+author: "garrett-allen"
+format: html
+editor: visual
+---
+
+```{r}
+library(rashomontva)
+library(tidyverse)
+library(collections)
+library(data.table)
+```
+
+#todo add examples
+
+```{r}
+policy_list <- create_policies(3,arms = 2)
+sigma <- matrix(c(1,1,1,NA), ncol = 2, nrow = 2)
+
+edge_list <- lattice_edges(sigma, policy_list)
+
+new_sigma <- matrix(c(0,1,1,1), ncol = 2, nrow = 2)
+pruned_edge_list <- prune_edges(new_sigma,edge_list,policy_list)
+
+cc <- connected_components(length(pruned_edge_list),pruned_edge_list,policy_list)
+
+cc$as_list()
+
+```
+
+```{r}
+data <- data.frame(arm1 = c(1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3),
+                   arm2 = c(1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3),
+                   value = runif(27))
+#searching rashomon set
+
+extract_pools <- function(policy_list, pool_list){
+  
+}
+
+policy_means <- function(data, ..., value){
+  
+  #convert to data.table
+  data %>% 
+    group_by(...) %>% 
+    summarize(mean = mean({{value}}),
+              n = n())
+}
+
+pools_to_data <- function(data,policy_list, pools_dict, value){
+  
+  data %>% 
+    mutate(together = purrr::pmap(unname(dplyr::select(.,-{{value}})),c)) %>% 
+    dplyr::rowwise() %>% 
+    mutate(pools = pools_dict$get(unlist(together))) %>% 
+    select(-together) %>% 
+    ungroup()
+}
+sigma[1,2:ncol(sigma)]
+
+partition_sigma <- function(i, j, sigma) {
+  
+  new_sigma = sigma
+  new_sigma[i, j:ncol(new_sigma)] = 0
+  new_sigma[is.na(sigma)] = NA
+  
+  new_sigma
+}
+
+x %>% 
+  group_by(arm1,arm2,pools) %>% 
+  summarize(mean = mean(value),
+            pool = mean(pools)) %>% 
+  ungroup() %>% 
+  group_by(pool) %>% 
+  summarize(mean = mean(mean))
+
+ pools_to_data(data, policy_list, cc, value)  %>% 
+  group_by(pools) %>% 
+  mutate(pool_mean = mean(value)) 
+
+str(as.numeric(unname(policy_list[[1]])))
+
+compute_B(data, value, sigma, i, j, policy_list, )
+```
