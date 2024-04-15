@@ -13,6 +13,7 @@ create_policies <- function(levels, arms = 0){
     level_list = rep(list(arm1_levels),arms)
   }
   else{
+    # producing all levels for each arm
     level_list = lapply(levels, function(x) seq.int(1,x))
   }
 
@@ -20,6 +21,8 @@ create_policies <- function(levels, arms = 0){
   asplit(as.matrix(df),1)
 
 }
+#' Assigns policy labels to data for use in create_policies_from_data
+#'
 #' @import dplyr
 #' @import magrittr
 #' @export
@@ -29,7 +32,8 @@ assign_policy_label <- function(data,...){
     mutate(policy_label = cur_group_id()) %>%
     ungroup()
 }
-
+#' Creates all factor combinations in a factorial design (as in) create_policies
+#'
 #' @import dplyr
 #' @import magrittr
 #' @export
