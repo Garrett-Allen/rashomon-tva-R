@@ -127,7 +127,7 @@ merge_components <- function(parent, x){
 #' and its value is the pool it is assigned to.
 #' @export
 #' @importFrom collections dict
-connected_components <- function(n, edges,policy_list){
+connected_components <- function(n, edges){
   parent = seq.int(from = 1, to = n)
 
   for(x in edges){
