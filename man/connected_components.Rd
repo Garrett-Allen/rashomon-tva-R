@@ -5,7 +5,7 @@
 \title{Returns the pooling structure given a sigma, in the form of a list that gives
 the pool number for each factorial combination (policy id)}
 \usage{
-connected_components(n, edges, policy_list)
+connected_components(n, edges)
 }
 \arguments{
 \item{n}{The initial number of parent nodes, usually the total number of factorial combinations}
