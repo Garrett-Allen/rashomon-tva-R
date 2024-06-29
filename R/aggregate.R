@@ -73,9 +73,10 @@ lattice_edges <- function(sigma, policy_list){
       if(diff == 1){ #can only be connected if diff == 1
 
         arm_diff = which(diff_vec == 1)
-        min_dose = min(policy_1[arm_diff],policy_2[arm_diff])
+        min_dose = min(policy_1[arm_diff],policy_2[arm_diff], na.rm = TRUE)
 
-        if(sigma[arm_diff, min_dose] == 1){
+        #is a valid edge if dose exists a
+        if(!is.na(sigma[arm_diff, min_dose]) & sigma[arm_diff, min_dose] == 1){
           edges[length(edges) + 1] = list(c(i,j)) #adds to edge list
         }
       }
@@ -147,4 +148,32 @@ connected_components <- function(n, edges){
   }
   all_cc
 
+}
+
+
+#' Helper function used to initialize sigma
+#' given M arms and a vector R (or a single number)
+#' of levels for each arm
+
+#' @param M the number of arms
+#' @param R If the number of levels per arm is constant, an integer of the
+#' number of levels. If not, a vector giving the levels for each arm
+#' @returns A sigma matrix with 1's in all valid cut locations and NAs if
+#' we cannot cut at that location (e.g. the level for that arm does not exist).
+#' @export
+
+initialize_sigma <- function(M,R){
+
+  if(length(R) == 1){
+    return(matrix(1, nrow = M, ncol = R - 2))
+  }
+
+  sigma <- matrix(nrow = M, ncol = max(R) - 2)
+
+  for(i in 1:M){
+    for(j in 1:(R[i] - 2)){
+      sigma[i,j] = 1
+    }
+  }
+  sigma
 }

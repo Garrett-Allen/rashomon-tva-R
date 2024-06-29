@@ -92,7 +92,7 @@ partition_sigma <- function(i, j, sigma) {
 
 #' Helper function to extract pools from a given sigma matrix
 #'
-#' @param policy_list
+#' @param policy_list A list of policies
 #' @param sigma Row of the sigma matrix to cut at
 #' @param lattice_edges List of edges between policies given a pooling structure.
 #' @importFrom collections dict

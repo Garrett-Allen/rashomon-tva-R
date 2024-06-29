@@ -16,16 +16,21 @@ library(data.table)
 
 ```{r}
 
+#M = 2
+#R = c(3,4)
+data <- data.frame(arm1 = c(1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2), 
+                    arm2 = c(1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3), 
+                    value = runif(27))
+sigma <- initialize_sigma(2, c(3,4))
+
 data <- assign_policy_label(data,arm1,arm2)
-policy_list <- rashomontva::create_policies_from_data(data, arm1, arm2)
-sigma <- matrix(c(1,1,1,1), ncol = 2, nrow = 2)
+policy_list <- create_policies_from_data(data, arm1, arm2)
 
 edge_list <- lattice_edges(sigma, policy_list)
 
-new_sigma <- matrix(c(NA,1,1,1), ncol = 2, nrow = 2)
+new_sigma <- matrix(c(0,1,NA,1), ncol = 2, nrow = 2)
 pruned_edge_list <- prune_edges(new_sigma,edge_list,policy_list)
-
-cc <- connected_components(length(pruned_edge_list),pruned_edge_list,policy_list)
+cc <- connected_components(6,pruned_edge_list)
 
 edge_list
 
@@ -35,66 +40,23 @@ str(cc$get(as.integer(1)))
 
 ```
 
+```{r} 
+
+# need to ask
+sigma <- initialize_sigma(2, c(3,4))
+
+
+
+num_pools_change_r(sigma, R = c(3,4))
+
+res = powerset(c(1,2,3))
+
+for(x in res[[3]]){
+}
+```         
+
 ```{r}
-data <- data.frame(arm1 = c(1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3),
-                   arm2 = c(1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3),
-                   value = runif(27))
-#searching rashomon set
-data <- assign_policy_label(data,arm1,arm2)
 
 
-# need to ask 
-num_pools_change_r <- function(sigma, R){
-  m = nrow(sigma)
-  
-  # why do this?
-  R = R - 1
-  R_prod = prod(R)
+```
 
-  z = rowSums(sigma, na.rm = TRUE)
-  indices = 1:m
-  z_combs = powerset(indices)
-  
-  H = 0 
-  for(i in 2:length(z_combs)){
-    all_combs_i = z_combs[[i]]
-    for(k in 1:length(all_combs_i)){
-      
-      if(!is.null(nrow(all_combs_i))){
-        comb = all_combs_i[,k]
-      }
-      else{
-        comb = all_combs_i[k]
-      }
-      sign = (-1)^ length(comb)
-      print(sign)
-      z_sum = prod(z[comb])
-      print(z_sum)
-      splits = R_prod / prod(R[comb])
-      print(splits)
-      H = H + sign * z_sum * splits
-      print(H)
-    }
-    
-  }
-  H
-
-}
-
-initialize_sigma <- function(R, arms = 0){
-  
-  if(length(R) == 1){
-    return(matrix(1, nrow = R, ncol = R))
-  }
-  
-  n <- length(R)
-  sigma <- matrix(nrow = n, ncol = n)
-  
-  for(i in 1:n){
-    for(j in 1:R[i]){
-      sigma[i,j] = 1
-    }
-  }
-  
-  
-}

@@ -70,6 +70,60 @@ num_pools_fixed_r <- function(sigma, R){
   H
 }
 
+#' Finds the number of pools in a sigma with differing numbers of levels for each arm.
+#'
+#' @param sigma Partition matrix for a given pooling structure
+#' @param R Vector of the number of levels for each arm
+#' @returns The number of pools given by this pooling structure
+#' @export
+num_pools_change_r <- function(sigma, R){
+
+  m = nrow(sigma)
+  R = R - 1
+  R_prod = prod(R)
+
+  z = rowSums(sigma, na.rm = TRUE)
+  indices = 1:m
+  z_combs = powerset(indices)
+
+  #accounting for null case (subset of size 0)
+  H = R_prod
+
+  #due to R quirks, I split this up into subsets of size {1,..., n-1} and
+  #subset of size n, but its just the same code repeated.
+
+  for(k in 2:length(z_combs)){
+    subsets_k = z_combs[[k]]
+
+    if(!is.null(nrow(subsets_k))){
+
+      for(i in 1:ncol(subsets_k)){
+
+        subset_ik = subsets_k[,i]
+
+        sign = (-1) ** length(subset_ik)
+        z_sum = prod(z[as.vector(subset_ik)])
+        splits = R_prod / prod(R[as.vector(subset_ik)])
+
+        H = H + sign * z_sum * splits
+      }
+    }
+    else{
+
+      subset_ik = subsets_k
+
+      sign = (-1) ** length(subset_ik)
+      z_sum = prod(z[as.vector(subset_ik)])
+      splits = R_prod / prod(R[as.vector(subset_ik)])
+
+      H = H + sign * z_sum * splits
+    }
+
+  }
+
+  H
+}
+
 #' Finds powerset of a given list (all the possible subsets of a list)
 #'
 #' @param arr A list
