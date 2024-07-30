@@ -52,7 +52,7 @@ create_policies_from_data <- function(data,...){
 #'Calculates edgelist for Hasse diagram given sigma and a list of factor combinations (policies).
 #'
 #'
-#' @param sigma M X R-1 matrix that gives where cuts occur (an entry if 1 is no cut, and 0 if there is)
+#' @param sigma M X R-2 matrix that gives where cuts occur (an entry if 1 is no cut, and 0 if there is)
 #' @param policy_list A list of all factorial combinations given by create_policies
 #' @returns Edge list of Hasse diagram, specifying which policies are connected in the same pool
 #' @export
@@ -73,7 +73,7 @@ lattice_edges <- function(sigma, policy_list){
       if(diff == 1){ #can only be connected if diff == 1
 
         arm_diff = which(diff_vec == 1)
-        min_dose = min(policy_1[arm_diff],policy_2[arm_diff], na.rm = TRUE)
+        min_dose = min(policy_1[arm_diff],policy_2[arm_diff], na.rm = TRUE) - 1
 
         #is a valid edge if dose exists a
         if(!is.na(sigma[arm_diff, min_dose]) & sigma[arm_diff, min_dose] == 1){

@@ -18,45 +18,344 @@ library(data.table)
 
 #M = 2
 #R = c(3,4)
-data <- data.frame(arm1 = c(1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2), 
-                    arm2 = c(1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3), 
+
+data <- data.frame(arm1 = c(1,1,1,1,1,1,1,1,1,2,2,4,4,4,2,2,2,2,2,2,3,3,3,3,3,3,3), 
+                    arm2 = c(1,2,3,1,2,3,1,2,3,1,2,3,1,2,4,1,2,3,1,2,3,4,2,4,1,2,4), 
                     value = runif(27))
-sigma <- initialize_sigma(2, c(3,4))
+sigma <- initialize_sigma(2, c(5,5))
 
 data <- assign_policy_label(data,arm1,arm2)
+
 policy_list <- create_policies_from_data(data, arm1, arm2)
 
 edge_list <- lattice_edges(sigma, policy_list)
 
-new_sigma <- matrix(c(0,1,NA,1), ncol = 2, nrow = 2)
-pruned_edge_list <- prune_edges(new_sigma,edge_list,policy_list)
-cc <- connected_components(6,pruned_edge_list)
+M <- policy_means(data, value)
 
-edge_list
-
-str(cc$get(as.integer(1)))
 # use as.integer
 
 
 ```
 
-```{r} 
-
-# need to ask
-sigma <- initialize_sigma(2, c(3,4))
+```{r}
+#| label: main loop
 
 
+#assumptions about data here: 
+#data has been assigned policy labels 
+#we have list of policies from data
+#we will filter data for the that fit the profile
+#after filtering for policies in profile, pull out labels from policy_list
+#this is to use for filtering data
 
-num_pools_change_r(sigma, R = c(3,4))
+#number in policy_list will correspond to policy_label in data. 
 
-res = powerset(c(1,2,3))
 
-for(x in res[[3]]){
+find_rashomon_profile <- function(data, value, M,R,H, reg=1,
+                                  profile,
+                                  policies = c(),
+                                  policy_means=c(), 
+                                  normalize=0,
+                                  theta = Inf){
+  
+  if(max(R) == 2){
+    sigma = matrix(nrow = M, ncol = 1)
+    rashomon_set = list(sigma)
+    return(rashomon_set)
+  }
+  
+  sigma = initialize_sigma(M, R)
+  hasse_edges = lattice_edges(sigma, policies)
+  print('here')
+  #creating list for compatibility
+  if(length(R) == 1){
+    R = rep(R, M)
+  }
+  
+  #defining list, hash tables, and queue
+  rashomon_set = list()
+  seen_sigmas = hashtab()
+  seen_sigmas_sub = hashtab()
+  queue_sigma = collections::queue(items = NULL)
+  #pushing initial problems onto queue
+  for(i in 1:M){
+    if(!is.na(sigma[i,1])){
+      queue_sigma$push(list(sigma,i,0))
+    }
+  }
+  count = 0
+  #main queue loop
+
+  while(queue_sigma$size() > 0){
+    count = count + 1
+    sigma_list = queue_sigma$pop()
+    
+    sigma = sigma_list[[1]]
+    i = sigma_list[[2]]
+    j = sigma_list[[3]]
+    sethash(seen_sigmas_sub, sigma_list, 1)
+    
+    if(num_pools(sigma,R) > H)
+      next
+    
+    sigma_1 = sigma
+    sigma_0 = sigma
+    sigma_1[i,j] = 1
+    sigma_0[i,j] = 0
+    
+    #adding all subproblem variants
+    for(m in 1:M){
+      
+      R_m = R[m]
+      j1 = 1
+      sigma_1_list = list(sigma_1, m, j1)
+      
+      #have we seen this subproblem?
+      seen = gethash(seen_sigmas_sub, sigma_1_list, nomatch = 0)
+     
+      
+      #if we have seen it, and our cutting index is less than R_m - 2, consider further cuts
+      while(seen != 0 & j1 <= R_m - 2){
+        j1 = j1 + 1
+        sigma_1_list = list(sigma_1,m,j1)
+        seen = gethash(seen_sigmas_sub, sigma_1_list, nomatch = 0)
+      }
+      
+      #if we haven't seen it and cutting is at a vlaid range, add it as a subproblem
+      if(j1 <= R_m -2 & seen == 0){
+        queue_sigma$push(sigma_1_list)
+        sethash(seen_sigmas_sub, sigma_1_list,1)
+      }
+      
+      j0 = 1
+      sigma_0_list = list(sigma_0, m, j0)
+      seen = gethash(seen_sigmas_sub, sigma_0_list, nomatch = 0)
+      
+      while(seen != 0 & j0 <= R_m - 2){
+        j0 = j0 + 1
+        sigma_0_list = list(sigma_0, m, j0)
+        seen = gethash(seen_sigmas_sub, sigma_0_list, nomatch = 0)
+      }
+      
+      if(j0 <= R_m -2 & seen == 0){
+        queue_sigma$push(sigma_0_list)
+        sethash(seen_sigmas_sub, sigma_0_list,1)
+      }
+     
+    }
+    
+    #computing B to check whether more splits is possible
+    
+    #i had to add this condition... why does apara's code not need it?
+    if(j != ncol(sigma)){
+      print('here_2')
+      B = compute_B(data, {{value}}, i,j, policy_means, sigma, policies, reg = 1, normalize = 0,
+                  lattice_edges = hasse_edges,R)
+    
+      if(B > theta){
+        next
+    }
+      
+    }
+    
+    #Check if unsplit pool satisfies Rashomon threshold
+    if(gethash(seen_sigmas, sigma_1, nomatch = 0) == 0){
+      sethash(seen_sigmas, sigma_1,1)
+      
+      Q = compute_loss(data, {{value}}, policy_means, sigma_1, policies, reg = 1, normalize = 0,
+                       lattice_edges = hasse_edges,R)
+      if(Q <= theta){
+        rashomon_set = append(rashomon_set, list(sigma_1))
+      }
+    }
+    #Check if split pool satisfies Rashomon threshold
+    if(gethash(seen_sigmas, sigma_0, nomatch = 0) == 0 & num_pools(sigma_0,R) <= H){
+      sethash(seen_sigmas, sigma_0,1)
+  
+      Q = compute_loss(data, {{value}}, policy_means, sigma_0, policies, reg = 1, normalize = 0,
+                       lattice_edges = hasse_edges,R)
+      if(Q <= theta){
+        rashomon_set = append(rashomon_set, list(sigma_0))
+      }
+    }
+    
+    sigma_1_list = list(sigma_1, i, j+1)
+    sigma_0_list = list(sigma_0, i, j+1)
+    
+    #add child problems
+    if(j+1 < R[i] - 2){
+      if(gethash(seen_sigmas_sub, sigma_1_list, nomatch = 0) == 0){
+        queue_sigma$push(list(sigma_1,i, j + 1))
+      }
+      if(gethash(seen_sigmas_sub, sigma_0_list, nomatch = 0) == 0){
+        queue_sigma$push(list(sigma_0,i, j + 1))
+      }
+    }
+    
+  }
+  rashomon_set
+  
+  
 }
-```         
+
+# res <- find_rashomon_profile(data = data, 
+#                      value = value, 
+#                      M = 2, 
+#                      R = c(3,4),
+#                      H = Inf, 
+#                      profile = c(1,1),
+#                      policies = policy_list,
+#                      policy_means = M)
+
+
+```
+
+```{r}
+#| label: test
+
+#TODO: 
+
+# Write functin to compute rashomon set for a particular profile
+# Write main loop to do this for all profiles
+# Write function to combine all profiles to get the actual rashomon set
+
+#return rashomon set object from which you can then pass this object into 
+#predict, other functions
+
+#make this package CRAN ready
+# https://bookdown.dongzhuoer.com/hadley/r-pkgs/release
+```
+
+  # Add problem variants to queue
+        for m in range(M):
+            R_m = R[m]
+            j1 = 0
+            while problems.seen(sigma_1, m, j1) and j1 < R_m - 3:
+                j1 += 1
+            if j1 <= R_m - 3:
+                queue.append((sigma_1, m, j1))
+            j0 = 0
+            while problems.seen(sigma_0, m, j0) and j0 < R_m - 3:
+                j0 += 1
+            if j0 <= R_m - 3:
+                queue.append((sigma_0, m, j0))
+
+
 
 ```{r}
 
 
+#calculates which profiles are active
+pol_in_prof <- function(policies, profile, inactive = 0){
+  
+  policy_profiles = lapply(policies, function(x) x != inactive)
+  sapply(policy_profiles, function(x) all(x == profile))
+  
+}
+
+#subset data
+subset_prof <- function(data, policy_list, profile,inactive = 0){
+  
+  policies_in_profile = pol_in_prof(policy_list, profile, inactive)
+  subset(data, policies_in_profile[data$policy_label])
+   
+  
+}
+
+#data
+#M number of features
+#R vector of factor levels
+#H Maximum number of pools
+#theta Rashomon threshold
+
+
+
+```
+
+
+```{r}
+aggregate_rashomon_profiles <- function(data,
+                                        ...,
+                                        M, 
+                                        H, 
+                                        R, 
+                                        value, 
+                                        theta, 
+                                        reg = 1, 
+                                        bruteforce = FALSE
+                                        ){
+  
+  num_profiles = 2^M
+  profiles = expand.grid(replicate(M, 0:1, simplify = FALSE))
+  #creating policy labels on data as well as list of all policies
+
+  data_labeled <- assign_policy_label(data,...)
+  policy_list <- create_policies_from_data(data_labeled,...)
+  num_data <- nrow(data_labeled)
+  data_labeled$id <- 1:num_data
+  
+  #Maximum number of pools for a profile derived from maximum number of pools
+  H_profile = H - num_profiles + 1
+  data_profile_ids = rep(0, num_data)
+  print('cp2')
+  #Assign profile ids to each data point
+  for(i in 2:num_profiles){
+    
+    #assign profile labels and extract appropriate subset
+    profile_i = as.numeric(profiles[i,])
+
+    data_i = subset_prof(data_labeled, policy_list, profile_i, 1)
+    print(data_i)
+    
+    if(length(data_i) == 0){
+      next
+    }
+    data_profile_ids[data_i$id] <- i
+
+    #extracting relevant things to find rashomon set for this profile
+    M_i = sum(profile_i)
+    R_i = R[as.logical(profile_i)]
+    
+    #find profile_lower_bound to find theta_k
+    #lower_bound = compute_mse_loss(data,{{value}},)
+    theta_k = theta
+
+    
+    data_i = assign_policy_label(data_i, ...)
+    policy_list_i = create_policies_from_data(data_i, ...)
+    policy_list_i_masked = lapply(policy_list_i, function(x) x[as.logical(profile_i)])
+    means_i = policy_means(data_i, {{value}})
+
+    rashomon_i = find_rashomon_profile(data_i, 
+                          {{value}}, 
+                          M_i, 
+                          R_i, 
+                          H_profile, 
+                          reg, 
+                          profile_i,
+                          policies = policy_list_i_masked, 
+                          policy_means = means_i, 
+                          normalize = 0, 
+                          theta = theta_k)
+    print(rashomon_i)
+  }
+  
+  
+}
+
+#TODO: implement find_profile_lower_bound
+
+#TODO: Once I have the rashomon partitions for a profile, write function to compute loss
+#for each pooling structure
+
+
+aggregate_rashomon_profiles(data, 
+                            arm1,
+                            arm2,
+                            M = 2, 
+                            H = Inf, 
+                            R = c(4,4), 
+                            value = value, 
+                            theta = Inf)
 ```
 

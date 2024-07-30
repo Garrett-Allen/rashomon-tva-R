@@ -64,7 +64,6 @@ pool_means <- function(data, value, pool){
     group_by({{pool}}) %>%
     summarize(mean_pool = mean({{value}}))
 
-
   pool_means_dict = collections::dict()
   for(i in 1:nrow(means)){
     pool_means_dict$set(as.integer(pull(means,{{pool}})[i]), pull(means,mean_pool)[i])
@@ -131,6 +130,7 @@ extract_pools <- function(policy_list, sigma, lattice_edges = NA){
 #' @import magrittr
 #' @import dplyr
 #' @returns MSE given sigma pooling structure and data.
+#' @export
 compute_mse_loss <- function(data,value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA){
 
   #Compute pools for new maximal split
@@ -193,6 +193,7 @@ compute_penalization_loss <- function(sigma, R, reg){
 #' @importFrom collections dict
 #' @import magrittr
 #' @import dplyr
+#' @export
 #' @returns MSE given sigma pooling structure and data
 compute_B <- function(data, value, i,j, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA,R){
 
@@ -206,7 +207,7 @@ compute_B <- function(data, value, i,j, M, sigma, policy_list, reg = 1, normaliz
   sigma_max_split[i, (j+1):ncol(sigma_max_split)] = 1
   sigma_max_split[is.na(sigma)] = NA
 
-  reg_loss = compute_penalization_loss(sigma, R, reg)
+  reg_loss = compute_penalization_loss(sigma_max_split, R, reg)
 
   B = mse + reg_loss
 
@@ -230,10 +231,11 @@ compute_B <- function(data, value, i,j, M, sigma, policy_list, reg = 1, normaliz
 #' @importFrom collections dict
 #' @import magrittr
 #' @import dplyr
+#' @export
 #' @returns Loss given pool for the data
 compute_loss <- function(data, value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA,R){
 
-  mse = compute_mse_loss(data, value, M, sigma_max_split, policy_list, lattice_edges)
+  mse = compute_mse_loss(data, value, M, sigma, policy_list, lattice_edges)
   reg_loss = compute_penalization_loss(sigma, R, reg)
 
   mse + reg_loss

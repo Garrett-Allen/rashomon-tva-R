@@ -7,7 +7,7 @@
 lattice_edges(sigma, policy_list)
 }
 \arguments{
-\item{sigma}{M X R-1 matrix that gives where cuts occur (an entry if 1 is no cut, and 0 if there is)}
+\item{sigma}{M X R-2 matrix that gives where cuts occur (an entry if 1 is no cut, and 0 if there is)}
 
 \item{policy_list}{A list of all factorial combinations given by create_policies}
 }

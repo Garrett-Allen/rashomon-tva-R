@@ -7,6 +7,8 @@
 extract_pools(policy_list, sigma, lattice_edges = NA)
 }
 \arguments{
+\item{policy_list}{A list of policies}
+
 \item{sigma}{Row of the sigma matrix to cut at}
 
 \item{lattice_edges}{List of edges between policies given a pooling structure.}

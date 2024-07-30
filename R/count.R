@@ -148,11 +148,11 @@ powerset <- function(arr) {
 #' @export
 num_pools <- function(sigma, R=NA){
 
-  if(is.na(sigma)){
+  if(all(is.na(sigma))){
     return(1)
   }
 
-  if(is.na(R)){
+  if(all(is.na(R))){
     R = find_R(sigma)
   }
 
@@ -161,7 +161,7 @@ num_pools <- function(sigma, R=NA){
   }
 
   else{
-    H = num_pools_diff_r(sigma, R)
+    H = num_pools_change_r(sigma, R)
   }
 
   H
