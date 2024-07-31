@@ -19,7 +19,7 @@ library(data.table)
 #M = 2
 #R = c(3,4)
 
-data <- data.frame(arm1 = c(1,1,1,1,1,1,1,1,1,2,2,4,4,4,2,2,2,2,2,2,3,3,3,3,3,3,3), 
+data <- data.frame(arm1 = c(1,1,1,1,1,1,1,1,1,2,2,3,3,3,2,2,2,2,2,2,3,3,3,3,3,3,3), 
                     arm2 = c(1,2,3,1,2,3,1,2,3,1,2,3,1,2,4,1,2,3,1,2,3,4,2,4,1,2,4), 
                     value = runif(27))
 sigma <- initialize_sigma(2, c(5,5))
@@ -66,7 +66,6 @@ find_rashomon_profile <- function(data, value, M,R,H, reg=1,
   
   sigma = initialize_sigma(M, R)
   hasse_edges = lattice_edges(sigma, policies)
-  print('here')
   #creating list for compatibility
   if(length(R) == 1){
     R = rep(R, M)
@@ -148,7 +147,6 @@ find_rashomon_profile <- function(data, value, M,R,H, reg=1,
     
     #i had to add this condition... why does apara's code not need it?
     if(j != ncol(sigma)){
-      print('here_2')
       B = compute_B(data, {{value}}, i,j, policy_means, sigma, policies, reg = 1, normalize = 0,
                   lattice_edges = hasse_edges,R)
     
@@ -164,6 +162,7 @@ find_rashomon_profile <- function(data, value, M,R,H, reg=1,
       
       Q = compute_loss(data, {{value}}, policy_means, sigma_1, policies, reg = 1, normalize = 0,
                        lattice_edges = hasse_edges,R)
+
       if(Q <= theta){
         rashomon_set = append(rashomon_set, list(sigma_1))
       }
@@ -274,6 +273,18 @@ subset_prof <- function(data, policy_list, profile,inactive = 0){
 
 
 ```{r}
+
+find_profile_lower_bound <- function(data, value){
+  
+  n_k = nrow(data)
+  data_mean <- data %>% 
+    group_by(policy_label) %>% 
+    mutate(mean = mean({{value}}))
+  
+  (yardstick::rmse_vec(pull(data_mean,{{value}}), data_mean$mean))^2 * n_k
+  
+}
+
 aggregate_rashomon_profiles <- function(data,
                                         ...,
                                         M, 
@@ -288,7 +299,11 @@ aggregate_rashomon_profiles <- function(data,
   num_profiles = 2^M
   profiles = expand.grid(replicate(M, 0:1, simplify = FALSE))
   #creating policy labels on data as well as list of all policies
-
+  
+  if(length(R) == 1){
+    R = rep(R,M)
+  }
+  
   data_labeled <- assign_policy_label(data,...)
   policy_list <- create_policies_from_data(data_labeled,...)
   num_data <- nrow(data_labeled)
@@ -297,30 +312,60 @@ aggregate_rashomon_profiles <- function(data,
   #Maximum number of pools for a profile derived from maximum number of pools
   H_profile = H - num_profiles + 1
   data_profile_ids = rep(0, num_data)
-  print('cp2')
+  
+  #initialize storage objects
+  D_profile = list()
+  eq_lb_profiles = rep(0, num_profiles)
+  rashomon_profiles = rep(0, num_profiles)
+  loss_object = rep(0, num_profiles)
+  
   #Assign profile ids to each data point
-  for(i in 2:num_profiles){
+  for(i in 1:num_profiles){
     
     #assign profile labels and extract appropriate subset
     profile_i = as.numeric(profiles[i,])
-
     data_i = subset_prof(data_labeled, policy_list, profile_i, 1)
-    print(data_i)
     
+    #store profile for each observation and subset corresponding to that profile
+    data_profile_ids[data_i$id] = i
+    D_profile[i] = list(data_i$id)
+    
+    #if no policies correspond to that profile
     if(length(data_i) == 0){
+      eq_lb_profiles[i] = 0
+      H_profile = H_profile + 1
+    }
+    
+    else{
+      eq_lb_profiles[i] = find_profile_lower_bound(data_i, {{value}})
+    }
+    
+  }
+  
+  eq_lb_profiles =  eq_lb_profiles / num_data
+  eq_lb_sum = sum(eq_lb_profiles)
+  
+  #deal with control separately 
+  rashomon_profiles[1] = 0
+  
+  for(i in 2:num_profiles){
+    
+    #extracting relevant things to find rashomon set for this profile
+    data_i = data_labeled[unlist(D_profile[i]),]
+    
+    if(nrow(data_i) == 0){
+      rashomon_profiles[i] = 0
       next
     }
-    data_profile_ids[data_i$id] <- i
-
-    #extracting relevant things to find rashomon set for this profile
+    
+    profile_i = as.numeric(profiles[i,])
     M_i = sum(profile_i)
     R_i = R[as.logical(profile_i)]
     
     #find profile_lower_bound to find theta_k
     #lower_bound = compute_mse_loss(data,{{value}},)
-    theta_k = theta
+    theta_k = theta - (eq_lb_sum - eq_lb_profiles[i])
 
-    
     data_i = assign_policy_label(data_i, ...)
     policy_list_i = create_policies_from_data(data_i, ...)
     policy_list_i_masked = lapply(policy_list_i, function(x) x[as.logical(profile_i)])
@@ -337,11 +382,19 @@ aggregate_rashomon_profiles <- function(data,
                           policy_means = means_i, 
                           normalize = 0, 
                           theta = theta_k)
-    print(rashomon_i)
+    
+    rashomon_profiles[i] = list(rashomon_i)
+    
+    
   }
+  print(rashomon_profiles)
   
   
 }
+
+find_feasible_combinations <- function()
+
+#TODO: Make a RashomonSet Object
 
 #TODO: implement find_profile_lower_bound
 
@@ -354,7 +407,7 @@ aggregate_rashomon_profiles(data,
                             arm2,
                             M = 2, 
                             H = Inf, 
-                            R = c(4,4), 
+                            R = c(3,4), 
                             value = value, 
                             theta = Inf)
 ```
