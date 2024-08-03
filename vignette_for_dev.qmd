@@ -60,7 +60,10 @@ find_rashomon_profile <- function(data, value, M,R,H, reg=1,
   
   if(max(R) == 2){
     sigma = matrix(nrow = M, ncol = 1)
-    rashomon_set = list(sigma)
+    rashomon_set = RashomonSet(models = list(sigma), 
+                               losses = numeric(),
+                               pools = list(1),
+                               profiles = list(list(profile)))
     return(rashomon_set)
   }
   
@@ -72,7 +75,10 @@ find_rashomon_profile <- function(data, value, M,R,H, reg=1,
   }
   
   #defining list, hash tables, and queue
-  rashomon_set = list()
+  rashomon_set = RashomonSet(models = list(), 
+                             losses = numeric(),
+                             pools = list(), 
+                             profiles = list())
   seen_sigmas = hashtab()
   seen_sigmas_sub = hashtab()
   queue_sigma = collections::queue(items = NULL)
@@ -164,7 +170,11 @@ find_rashomon_profile <- function(data, value, M,R,H, reg=1,
                        lattice_edges = hasse_edges,R)
 
       if(Q <= theta){
-        rashomon_set = append(rashomon_set, list(sigma_1))
+        
+        rashomon_set$insert_sigma(sigma_1, Q)
+        num_pools = num_pools(sigma_1, R)
+        rashomon_set$insert_pools(num_pools)
+        rashomon_set$insert_profile(list(profile))
       }
     }
     #Check if split pool satisfies Rashomon threshold
@@ -174,7 +184,11 @@ find_rashomon_profile <- function(data, value, M,R,H, reg=1,
       Q = compute_loss(data, {{value}}, policy_means, sigma_0, policies, reg = 1, normalize = 0,
                        lattice_edges = hasse_edges,R)
       if(Q <= theta){
-        rashomon_set = append(rashomon_set, list(sigma_0))
+        
+        rashomon_set$insert_sigma(sigma_0, Q)
+        num_pools = num_pools(sigma_0, R)
+        rashomon_set$insert_pools(num_pools)
+        rashomon_set$insert_profile(list(profile))
       }
     }
     
@@ -268,11 +282,44 @@ subset_prof <- function(data, policy_list, profile,inactive = 0){
 #theta Rashomon threshold
 
 
+insert_sigma <- function(new_sigma, loss){
+  
+  models <<- append(models, list(new_sigma))
+  losses <<- c(losses,loss)
+}
+
+insert_pools <- function(pool_num){
+  pools <<- append(pools, pool_num)
+}
+
+insert_profile <- function(profile){
+  profiles <<- append(profiles, profile)
+}
+
+sort <- function(){
+  order <- order(losses)
+  losses <<- losses[order]
+  models <<- models[order]
+  pools  <<- pools[order]
+  profiles <<- profiles[order]
+}
+
+
+RashomonSet <- setRefClass("RashomonSet", fields = list(models = "list",
+                                                        losses = "numeric",
+                                                        pools = "list",
+                                                        profiles = "list"),
+                           methods = list(insert_sigma = insert_sigma,
+                                          insert_pools = insert_pools,
+                                          insert_profile = insert_profile,
+                                          sort = sort))
 
 ```
 
 
 ```{r}
+
+
 
 find_profile_lower_bound <- function(data, value){
   
@@ -346,7 +393,11 @@ aggregate_rashomon_profiles <- function(data,
   eq_lb_sum = sum(eq_lb_profiles)
   
   #deal with control separately 
-  rashomon_profiles[1] = 0
+  control_loss = eq_lb_profiles[[1]] + reg
+  rashomon_profiles[1] = list(RashomonSet(models = list(NA),
+                                     losses = control_loss,
+                                     pools = list(1),
+                                     profiles = list(as.numeric(profiles[1,]))))
   
   for(i in 2:num_profiles){
     
@@ -354,7 +405,10 @@ aggregate_rashomon_profiles <- function(data,
     data_i = data_labeled[unlist(D_profile[i]),]
     
     if(nrow(data_i) == 0){
-      rashomon_profiles[i] = 0
+      rashomon_profiles[i] = list(RashomonSet(models = list(NA),
+                                     losses = 0,
+                                     pools = list(0),
+                                     profiles = list(as.numeric(profiles[1,]))))
       next
     }
     
@@ -383,32 +437,135 @@ aggregate_rashomon_profiles <- function(data,
                           normalize = 0, 
                           theta = theta_k)
     
+    invisible(rashomon_i$sort())
     rashomon_profiles[i] = list(rashomon_i)
     
     
   }
-  print(rashomon_profiles)
   
+  R_set = find_feasible_combinations(rashomon_profiles, theta, H, sorted = TRUE)
+  
+  list(R_set, rashomon_profiles)
   
 }
 
-find_feasible_combinations <- function()
-
-#TODO: Make a RashomonSet Object
-
-#TODO: implement find_profile_lower_bound
-
-#TODO: Once I have the rashomon partitions for a profile, write function to compute loss
-#for each pooling structure
 
 
-aggregate_rashomon_profiles(data, 
+find_feasible_combinations <- function(rashomon_profiles, theta, H, sorted = FALSE){
+  
+  #sorting so we can pass into the feasible_sums function
+  if(!sorted){
+    for(rset in rashomon_profiles){
+      rset$sort()
+    }
+  }
+  
+  #coalescing all losses into one list of lists.
+  all_losses <- lapply(rashomon_profiles, function(x) x$losses)
+  
+  loss_combinations = find_feasible_sum_subsets(all_losses, theta)
+  
+  feasible_combinations = list()
+  
+  #filtering so that we only have combinations with number of pools smaller
+  #than H
+  
+  for(i in 1:length(loss_combinations)){
+    pools = 0
+    comb = loss_combinations[[i]]
+    for(j in 1:length(comb)){
+    
+      r_prof = rashomon_profiles[[j]]
+      model_id = comb[[j]]
+      
+      if(all(is.na(r_prof$models[[model_id]]))){
+        if(r_prof$losses[[model_id]] > 0){
+          pools = pools + 1
+        }
+      }
+      
+      else{
+        pools = pools + r_prof$pools[[model_id]]
+      }
+      
+      
+    }
+    
+    if(pools <= H){
+      feasible_combinations = append(feasible_combinations, list(comb))
+    }
+    
+  }
+  
+  feasible_combinations
+}
+
+
+find_feasible_sum_subsets <- function(S,theta){
+  
+  numsets = length(S)
+  
+  if(numsets == 0){
+    return(list())
+  }
+  
+  S1 = S[[1]]
+  S1_feasible_ids = which(S1 <= theta)
+  
+  if(numsets == 1){
+    feasible_combs = lapply(S1_feasible_ids, list)
+    return(feasible_combs)
+  }
+  
+  # Since the list is sorted, add the first elements of the remaining sets
+  # Then use this to check feasibility of indices in S1_feasible_idx
+  first_element_sum = 0
+  
+  for(x in S[2:numsets]){
+    first_element_sum = first_element_sum + x[1]
+  }
+  
+  feasible_combs = list()
+  for(i in S1_feasible_ids){
+    theta_i = theta - S1[i]
+    
+    if(first_element_sum > theta_i){
+      next
+    }
+    
+    subproblem_res_i = find_feasible_sum_subsets(S[2:numsets], theta_i)
+    subproblem_res_i = lapply(subproblem_res_i, function(x) c(i,x))
+
+    feasible_combs = append(feasible_combs, subproblem_res_i)
+  }
+  
+  feasible_combs
+  
+}
+
+
+rset <- aggregate_rashomon_profiles(data, 
                             arm1,
                             arm2,
                             M = 2, 
                             H = Inf, 
-                            R = c(3,4), 
+                            R = c(4,4), 
                             value = value, 
                             theta = Inf)
+
+# TODO: Make predictions from this output
+# TODO: Test
+# TODO: Deal with ids in a smart way
+
+but otherwise, mostly done
+
+```
+
+```{r}
+data.frame(spp1 = c("plant_1","plant_3"),
+           cc1 = c("p","r"),
+           spp2 = c("plant_2","plant_4"),
+           cc2 = c("p","r")) %>% 
+  mutate(id = 1:n())  
 ```
 
