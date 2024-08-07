@@ -58,14 +58,13 @@ create_policies_from_data <- function(data,...){
 #' @export
 lattice_edges <- function(sigma, policy_list){
 
+
   num_policies = length(policy_list)
   edges = list()
 
   for(i in 1:(num_policies - 1)){
     policy_1 = policy_list[[i]]
-
     for(j in (i+1):num_policies){
-
       policy_2 = policy_list[[j]]
       diff_vec = abs(policy_1 - policy_2)
       diff = sum(diff_vec) #calculating difference between abs of policy
@@ -73,7 +72,7 @@ lattice_edges <- function(sigma, policy_list){
       if(diff == 1){ #can only be connected if diff == 1
 
         arm_diff = which(diff_vec == 1)
-        min_dose = min(policy_1[arm_diff],policy_2[arm_diff], na.rm = TRUE) - 1
+        min_dose = min(policy_1[arm_diff],policy_2[arm_diff], na.rm = TRUE)
 
         #is a valid edge if dose exists a
         if(!is.na(sigma[arm_diff, min_dose]) & sigma[arm_diff, min_dose] == 1){
@@ -94,7 +93,6 @@ lattice_edges <- function(sigma, policy_list){
 #' @export
 prune_edges <- function(sigma, edges, policy_list){
   new_edges = list()
-
   for(x in edges){
 
     pol1 = policy_list[[x[1]]]
@@ -126,7 +124,6 @@ merge_components <- function(parent, x){
 #' @returns A collections:dict() that gives the pool for each factorial combination (policy id). The key
 #' for each element of the list is the index of its occurrence in policy_list (given by create policies),
 #' and its value is the pool it is assigned to.
-#' @export
 #' @importFrom collections dict
 connected_components <- function(n, edges){
   parent = seq.int(from = 1, to = n)

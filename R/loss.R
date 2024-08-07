@@ -79,7 +79,6 @@ pool_means <- function(data, value, pool){
 #' @param i Row of the sigma matrix to cut at
 #' @param j Column to cut up to
 #' @returns A new partition matrix cut from row i to column j
-#' @export
 partition_sigma <- function(i, j, sigma) {
 
   new_sigma = sigma
@@ -131,7 +130,7 @@ extract_pools <- function(policy_list, sigma, lattice_edges = NA){
 #' @import dplyr
 #' @returns MSE given sigma pooling structure and data.
 #' @export
-compute_mse_loss <- function(data,value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA){
+compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA){
 
   #Compute pools for new maximal split
   pool_dict = extract_pools(policy_list, sigma, lattice_edges)
@@ -157,6 +156,11 @@ compute_mse_loss <- function(data,value, M, sigma, policy_list, reg = 1, normali
 
   mse = (yardstick::rmse_vec(pool_mean_data, y))^2
 
+  if(normalize > 0){
+    mse = (mse * nrow(data) / normalize)
+  }
+
+  mse
 }
 
 #' Computes penalization loss for data (regularization param * number of pools)
@@ -171,7 +175,7 @@ compute_penalization_loss <- function(sigma, R, reg){
     return(1)
   }
   else{
-    return(num_pools(sigma, R))
+    return(num_pools(sigma, R) * reg)
   }
 
 }
@@ -195,12 +199,12 @@ compute_penalization_loss <- function(sigma, R, reg){
 #' @import dplyr
 #' @export
 #' @returns MSE given sigma pooling structure and data
-compute_B <- function(data, value, i,j, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA,R){
+compute_B <- function(data, value, i,j, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA, R){
 
   #Split maximally across row, starting at point i, j:
   sigma_max_split = partition_sigma(i,j,sigma)
 
-  mse = compute_mse_loss(data, value, M, sigma_max_split, policy_list, lattice_edges)
+  mse = compute_mse_loss(data, {{value}}, M, sigma_max_split, policy_list, reg = reg, normalize = normalize, lattice_edges)
 
   #least number of pools
   #least bad penalty for complexity
@@ -217,7 +221,7 @@ compute_B <- function(data, value, i,j, M, sigma, policy_list, reg = 1, normaliz
 #' Loss given a specific pooling stucture (sigma)
 #'
 #' @param data User supplied dataframe that contains values
-#' @param value Label of column containing value observed for each individual
+#' @param value Label of column containing value observed for each observation
 #' @param i Row to split at in sigma
 #' @param j Column to split from in sigma
 #' @param M Dataframe of policy means
@@ -233,9 +237,9 @@ compute_B <- function(data, value, i,j, M, sigma, policy_list, reg = 1, normaliz
 #' @import dplyr
 #' @export
 #' @returns Loss given pool for the data
-compute_loss <- function(data, value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA,R){
+compute_loss <- function(data, value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA, R){
 
-  mse = compute_mse_loss(data, value, M, sigma, policy_list, lattice_edges)
+  mse = compute_mse_loss(data, {{value}}, M, sigma, policy_list, reg = 1, normalize = normalize, lattice_edges)
   reg_loss = compute_penalization_loss(sigma, R, reg)
 
   mse + reg_loss
