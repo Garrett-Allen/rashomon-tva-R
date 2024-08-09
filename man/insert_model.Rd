@@ -13,7 +13,7 @@ insert_model(new_sigma, loss, num_pools, profile)
 
 \item{num_pools}{Number of pools present in new_sigma}
 
-\item{insert_profile}{Profile for the given sigma matrix.}
+\item{profile}{Profile for the given sigma matrix.}
 }
 \description{
 Inserts new model and it's corresponding loss into a RashomonSet Object

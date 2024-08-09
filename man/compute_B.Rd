@@ -2,7 +2,7 @@
 % Please edit documentation in R/loss.R
 \name{compute_B}
 \alias{compute_B}
-\title{Lookahead loss (B) to know when we need not continue with a given sigma.}
+\title{Look-ahead loss (B) to know when we need not continue with a given sigma.}
 \usage{
 compute_B(
   data,
@@ -46,5 +46,5 @@ by the data.}
 MSE given sigma pooling structure and data
 }
 \description{
-Lookahead loss (B) to know when we need not continue with a given sigma.
+Look-ahead loss (B) to know when we need not continue with a given sigma.
 }

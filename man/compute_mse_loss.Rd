@@ -16,7 +16,7 @@ compute_mse_loss(
 )
 }
 \arguments{
-\item{data}{User supplied dataframe that contains values}
+\item{data}{Dataframe containing the treatment assignments}
 
 \item{value}{Label of column containing value observed for each individual}
 
@@ -29,7 +29,7 @@ by the data.}
 
 \item{reg}{Regularization parameter that penalizes partitions with more pools}
 
-\item{normalize}{Whether or not to normalize loss (unsure?)}
+\item{normalize}{Whether or not to normalize loss}
 
 \item{lattice_edges}{Edges of pooling structure}
 }

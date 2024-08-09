@@ -2,9 +2,7 @@
 % Please edit documentation in R/aggregate.R
 \name{initialize_sigma}
 \alias{initialize_sigma}
-\title{Helper function used to initialize sigma
-given M arms and a vector R (or a single number)
-of levels for each arm}
+\title{Initialize sigma matrix}
 \usage{
 initialize_sigma(M, R)
 }

@@ -2,10 +2,19 @@
 % Please edit documentation in R/aggregate.R
 \name{create_policies_from_data}
 \alias{create_policies_from_data}
-\title{Creates all factor combinations in a factorial design (as in) create_policies}
+\title{Generate list of policies present in data
+Creates all factor combinations in a factorial design from the data, for
+use downstream in functions that require policy_list as a parameter.}
 \usage{
 create_policies_from_data(data, ...)
 }
+\arguments{
+\item{data}{Dataframe containing the  treatment assignments}
+
+\item{...}{Column names where the different arm labels are located.}
+}
 \description{
-Creates all factor combinations in a factorial design (as in) create_policies
+Generate list of policies present in data
+Creates all factor combinations in a factorial design from the data, for
+use downstream in functions that require policy_list as a parameter.
 }

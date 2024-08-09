@@ -1,10 +1,10 @@
-#' Finds the policies present in a given profile.
+#' @description Finds the policies present in a given profile.
 #' @param policies A list of policies, typically given by generate_policies_from_data
 #' @param profile The profile we wish to see which policies are active form
 #' @param inactive The level in policies that denotes an arm is inactive.
 #'
 #' @returns A list of policies present in a given profile
-#'
+#' @noRd
 pol_in_prof <- function(policies, profile, inactive = 0){
 
   policy_profiles = lapply(policies, function(x) x != inactive)
@@ -12,14 +12,14 @@ pol_in_prof <- function(policies, profile, inactive = 0){
 
 }
 
-#' Finds subset of a dataset corresponding to a given profile
+#' @description Finds subset of a dataset corresponding to a given profile
 #' @param data A dataframe output from assign_policy_label
 #' @param policy_list A list of policies given by generate_policies_from_data
 #' @param profile The profile we wish to see which policies are active form
 #' @param inactive The level in policies that denotes an arm is inactive.
 #'
 #' @returns The subset of a data that corresponds to the given profile
-#'
+#' @noRd
 subset_prof <- function(data, policy_list, profile,inactive = 0){
 
   policies_in_profile = pol_in_prof(policy_list, profile, inactive)
@@ -28,13 +28,13 @@ subset_prof <- function(data, policy_list, profile,inactive = 0){
 
 }
 
-#' Finds lower bound for a given profile
+#' @description Finds lower bound for a given profile
 #' @param data Data prefiltered to be from a given profile
 #' @param value The column name of the y values in data
 #'
 #'
 #' @returns Bound on how low a model's loss can be in a given profile.
-#'
+#' @noRd
 find_profile_lower_bound <- function(data, value){
 
   n_k = nrow(data)
@@ -46,7 +46,9 @@ find_profile_lower_bound <- function(data, value){
 
 }
 
-#' Finds feasible combinations of
+#' @description Finds combinations of models such that the sum of their losses is less than
+#' theta, the maximum number of pools is less than H, and each profile has a model
+#' that gives the pooling structure for that profile.
 #' @param rashomon_profiles A list of RashomonSet objects, where each entry of the list
 #' contains a RashomonSet corresponding to a different profile
 #' @param theta Threshold value to be present in the RashomonSet.
@@ -58,7 +60,7 @@ find_profile_lower_bound <- function(data, value){
 #' profiles is less than theta and has less than H total pools. The ith entry in
 #' each list corresponds to the ith RashomonSet profile, and the value of
 #' the ith entry represents the model in the ith RashomonSet profile.
-#'
+#' @noRd
 find_feasible_combinations <- function(rashomon_profiles, theta, H, sorted = FALSE){
 
   #sorting so we can pass into the feasible_sums function
@@ -107,11 +109,13 @@ find_feasible_combinations <- function(rashomon_profiles, theta, H, sorted = FAL
   feasible_combinations
 }
 
-#' Find all combinations of indices from the list of arrays S such that sum <= theta
+#' @description Find all combinations of indices from the list of arrays S such the sum of those values
+#' is less than theta.
 #' @param S List of lists of numbers
 #' @param theta Threshold
 #' @returns List of combinations of indices, one from each array in S
 #' such that their sum is less than or equal to theta
+#' @noRd
 find_feasible_sum_subsets <- function(S,theta){
 
   numsets = length(S)

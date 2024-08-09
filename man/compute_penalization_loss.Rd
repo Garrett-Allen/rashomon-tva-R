@@ -2,7 +2,7 @@
 % Please edit documentation in R/loss.R
 \name{compute_penalization_loss}
 \alias{compute_penalization_loss}
-\title{Computes penalization loss for data (regularization param * number of pools)}
+\title{Computes penalization loss for data (regularization parameter * number of pools)}
 \usage{
 compute_penalization_loss(sigma, R, reg)
 }
@@ -17,5 +17,5 @@ compute_penalization_loss(sigma, R, reg)
 Penalization loss
 }
 \description{
-Computes penalization loss for data (regularization param * number of pools)
+Computes penalization loss for data (regularization parameter * number of pools)
 }

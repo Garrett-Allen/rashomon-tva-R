@@ -30,15 +30,11 @@ by the data.}
 
 \item{reg}{Regularization parameter that penalizes partitions with more pools}
 
-\item{normalize}{Whether or not to normalize loss (unsure?)}
+\item{normalize}{Whether or not to normalize loss}
 
 \item{lattice_edges}{Edges of pooling structure}
 
 \item{R}{A list (or integer) of the number of levels in each arm.}
-
-\item{i}{Row to split at in sigma}
-
-\item{j}{Column to split from in sigma}
 }
 \value{
 Loss given pool for the data

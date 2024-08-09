@@ -50,7 +50,7 @@ loss of the model across all profiles. Defaults to zero.}
 
 \item{filtered}{Whether or not data is already filtered. Defaults to True.}
 
-\item{inactive}{The level that denotes an inactive arm in data. Defauts to zero.}
+\item{inactive}{The level that denotes an inactive arm in data. Defaults to zero.}
 }
 \value{
 A RashomonSet Object that gives all of the partition matrices in the

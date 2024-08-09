@@ -2,10 +2,16 @@
 % Please edit documentation in R/aggregate.R
 \name{assign_policy_label}
 \alias{assign_policy_label}
-\title{Assigns policy labels to data for use in create_policies_from_data}
+\title{Assign policy labels to data}
 \usage{
 assign_policy_label(data, ...)
 }
+\arguments{
+\item{data}{Dataframe containing the treatment assignments}
+
+\item{...}{Column names where the different arm labels are located.}
+}
 \description{
-Assigns policy labels to data for use in create_policies_from_data
+Assigns policy labels to data for use in create_policies_from_data. It will
+assign a unique id to each unique treatment combination present in data.
 }

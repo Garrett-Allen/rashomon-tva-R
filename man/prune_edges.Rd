@@ -2,13 +2,12 @@
 % Please edit documentation in R/aggregate.R
 \name{prune_edges}
 \alias{prune_edges}
-\title{Prunes adjacencies given by lattice_adjacencies if our pooling structure (sigma) changes
-in order to reduce computation when exploring all sigmas}
+\title{Prune Hasse edges given new sigma}
 \usage{
 prune_edges(sigma, edges, policy_list)
 }
 \arguments{
-\item{sigma}{M X R-1 matrix that gives where cuts occur (an entry if 1 is no cut, and 0 if there is)}
+\item{sigma}{M X R-2 matrix that gives where cuts occur (an entry if 1 is no cut, and 0 if there is)}
 
 \item{edges}{Edge list of Hasse diagram, as given by the function lattice_adjacencies}
 

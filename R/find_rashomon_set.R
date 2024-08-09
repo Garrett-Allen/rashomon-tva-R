@@ -1,4 +1,4 @@
-#' Finds the RashomonSet for a given profile.
+#' @title Finds the RashomonSet for a given profile.
 #'
 #' @param data A dataframe containing the column whose name you supply in value
 #' @param value The column name of the y values in data
@@ -17,7 +17,7 @@
 #' loss of the model across all profiles. Defaults to zero.
 #' @param theta Threshold value to be present in the RashomonSet. Set to Inf if you want all poolings.
 #' @param filtered Whether or not data is already filtered. Defaults to True.
-#' @param inactive The level that denotes an inactive arm in data. Defauts to zero.
+#' @param inactive The level that denotes an inactive arm in data. Defaults to zero.
 #' @returns A RashomonSet Object that gives all of the partition matrices in the
 #' Rashomon Set for a given theta.
 #'
@@ -200,7 +200,7 @@ find_rashomon_profile <- function(data, value, M,R,H, reg=1,
   rashomon_set
 
 }
-#' Finds the RashomonSet of models for a given dataset.
+#' @title Finds the RashomonSet of models for a given dataset.
 #'
 #' @param data A dataframe containing the column whose name you supply in value
 #' @param ... The names of the columns where the levels for each arm can be found.

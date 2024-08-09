@@ -4,10 +4,9 @@
 \name{RashomonSet-class}
 \alias{RashomonSet-class}
 \alias{RashomonSet}
-\title{RashomonSet class. This can be used to both form the RashomonSet for a given
-profile and a single member of the RashomonSet across all profiles.}
+\title{Rashomon Set}
 \description{
-RashomonSet class. This can be used to both form the RashomonSet for a given
+This class stores members of the RashomonSet. This can be used to both form the RashomonSet for a given
 profile and a single member of the RashomonSet across all profiles.
 }
 \section{Fields}{

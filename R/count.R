@@ -3,7 +3,8 @@
 #'
 #' @param arr A list
 #' @returns A list of the sums of the products of size k, where the (k+1)th element
-#' denotes the kth sum. The 1st element is 1, for use in other functions for easy looping.
+#' denotes the kth sum. The 1st element is 1, for use in other functions for easy looping
+#' @noRd
 sum_product_k <- function(arr) {
   # Length of the input array
   n <- length(arr)
@@ -56,6 +57,7 @@ find_R <- function(sigma){
 #' @param R The number of total numbers of levels for each arm (in this function,
 #' we are assuming R is equal for all arms)
 #' @returns The number of pools given by this pooling structure
+#' @noRd
 num_pools_fixed_r <- function(sigma, R){
   m = nrow(sigma)
   z = rowSums(sigma)
@@ -73,6 +75,7 @@ num_pools_fixed_r <- function(sigma, R){
 #' @param sigma Partition matrix for a given pooling structure
 #' @param R Vector of the number of levels for each arm
 #' @returns The number of pools given by this pooling structure
+#' @noRd
 num_pools_change_r <- function(sigma, R){
 
   m = nrow(sigma)
@@ -126,7 +129,7 @@ num_pools_change_r <- function(sigma, R){
 #' @param arr A list
 #' @returns A list of lists, where element list[[k]] is a matrix of all of
 #' the subsets of size k, such that list[[k]][,i] is the ith subset of size k.
-#'
+#' @noRd
 powerset <- function(arr) {
   s <- as.list(arr)
   subsets <- lapply(0:length(s), function(r) {

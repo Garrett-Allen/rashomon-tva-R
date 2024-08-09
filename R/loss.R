@@ -2,10 +2,9 @@
 #' Finds policy labels given data with each observation labeled with its policy
 #' TODO: Change all function calls from other packages to be explicit, and
 #' change if necessary for speedups.
-#' @param data User data appended with policy labels
+#' @param data Dataframe containing the treatment assignments
 #' @param value Name of value column observed for each observation, supplied by the user.
 #' @returns A dataframe of policy means, where each row is the mean for a given policy.
-#' @importFrom collections dict
 #' @import magrittr
 #' @import dplyr
 #' @export
@@ -13,8 +12,8 @@ policy_means <- function(data, value){
 
   #convert to data.table
   data %>%
-    group_by(policy_label) %>%
-    summarize(sum = sum({{value}}, na.rm = TRUE),
+    dplyr::group_by(policy_label) %>%
+    dplyr::summarize(sum = sum({{value}}, na.rm = TRUE),
               n = n(),
               mean = mean({{value}}),
               .groups = "drop",
@@ -23,11 +22,13 @@ policy_means <- function(data, value){
 
 #' Assigns pools to observations in data given a dictionary of pools.
 #'
-#' @param arr A list
+#' @param data Dataframe containing the treatment assignments
+#' @param pools_dict A collections::dict object from extract_pools() that
+#' takes in a policy id and outputs the pool it is in.
 #' @returns A list of the sums of the products of size k, where the (k+1)th element
 #' denotes the kth sum. The 1st element is 1, for use in other functions for easy looping.
 #' @importFrom collections dict
-#' @export
+#' @noRd
 pools_to_data <- function(data, pools_dict){
 
   policy_label <- as.integer(dplyr::pull(data,policy_label))
@@ -47,9 +48,7 @@ pools_to_data <- function(data, pools_dict){
 
 
 #' Finds pool means given data, value, and pool label
-#' TODO: Change all function calls from other packages to be explicit, and
-#' change if necessary for speedups.
-#' @param data User data appended with policy labels
+#' @param data Dataframe containing the treatment assignments
 #' @param value Name of value column observed for each observation, supplied by the user.
 #' @param pool Name of pool column
 #' @returns A collections::dict() object, where the key is an integer i corresponding
@@ -57,7 +56,7 @@ pools_to_data <- function(data, pools_dict){
 #' @importFrom collections dict
 #' @import magrittr
 #' @import dplyr
-#' @export
+#' @noRd
 pool_means <- function(data, value, pool){
 
   means <- data %>%
@@ -79,6 +78,7 @@ pool_means <- function(data, value, pool){
 #' @param i Row of the sigma matrix to cut at
 #' @param j Column to cut up to
 #' @returns A new partition matrix cut from row i to column j
+#' @noRd
 partition_sigma <- function(i, j, sigma) {
 
   new_sigma = sigma
@@ -96,6 +96,7 @@ partition_sigma <- function(i, j, sigma) {
 #' @importFrom collections dict
 #' @returns A collections:dict object of all the pools, where the key is integer
 #' id of a policy and the value is the pool id.
+#' @noRd
 extract_pools <- function(policy_list, sigma, lattice_edges = NA){
 
   if(any(is.na(lattice_edges))){
@@ -116,14 +117,14 @@ extract_pools <- function(policy_list, sigma, lattice_edges = NA){
 
 #' MSE loss for data (y_i - pool_mean_i)^2 for i in pool i.
 #'
-#' @param data User supplied dataframe that contains values
+#' @param data Dataframe containing the treatment assignments
 #' @param value Label of column containing value observed for each individual
 #' @param M Dataframe of policy means
 #' @param sigma Partition matrix that gives pooling structure
 #' @param policy_list List of policies, which if a list of vectors of all policies implied
 #' by the data.
 #' @param reg Regularization parameter that penalizes partitions with more pools
-#' @param normalize Whether or not to normalize loss (unsure?)
+#' @param normalize Whether or not to normalize loss
 #' @param lattice_edges Edges of pooling structure
 #' @importFrom collections dict
 #' @import magrittr
@@ -163,7 +164,7 @@ compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normal
   mse
 }
 
-#' Computes penalization loss for data (regularization param * number of pools)
+#' Computes penalization loss for data (regularization parameter * number of pools)
 #'
 #' @param sigma Partition matrix for a given pooling structure
 #' @param R A list (or integer) of the number of levels in each arm.
@@ -180,7 +181,7 @@ compute_penalization_loss <- function(sigma, R, reg){
 
 }
 
-#' Lookahead loss (B) to know when we need not continue with a given sigma.
+#' Look-ahead loss (B) to know when we need not continue with a given sigma.
 #'
 #' @param data User supplied dataframe that contains values
 #' @param value Label of column containing value observed for each individual
@@ -222,14 +223,12 @@ compute_B <- function(data, value, i,j, M, sigma, policy_list, reg = 1, normaliz
 #'
 #' @param data User supplied dataframe that contains values
 #' @param value Label of column containing value observed for each observation
-#' @param i Row to split at in sigma
-#' @param j Column to split from in sigma
 #' @param M Dataframe of policy means
 #' @param sigma Partition matrix that gives pooling structure
 #' @param policy_list List of policies, which if a list of vectors of all policies implied
 #' by the data.
 #' @param reg Regularization parameter that penalizes partitions with more pools
-#' @param normalize Whether or not to normalize loss (unsure?)
+#' @param normalize Whether or not to normalize loss
 #' @param lattice_edges Edges of pooling structure
 #' @param R A list (or integer) of the number of levels in each arm.
 #' @importFrom collections dict

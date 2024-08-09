@@ -9,7 +9,7 @@ change if necessary for speedups.}
 policy_means(data, value)
 }
 \arguments{
-\item{data}{User data appended with policy labels}
+\item{data}{Dataframe containing the treatment assignments}
 
 \item{value}{Name of value column observed for each observation, supplied by the user.}
 }
