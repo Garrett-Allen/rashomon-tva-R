@@ -2,19 +2,25 @@
 % Please edit documentation in R/RashomonSet.R
 \name{insert_model}
 \alias{insert_model}
-\title{Inserts new model and it's corresponding loss into a RashomonSet Object}
+\title{Inserts new model and it's corresponding loss into a RashomonSet Object
+#TODO: Consider changing this to S3}
 \usage{
-insert_model(new_sigma, loss, num_pools, profile)
+insert_model(obj, new_sigma, new_loss, new_num_pools, new_profile, new_dict)
 }
 \arguments{
+\item{obj}{A RashomonSet object}
+
 \item{new_sigma}{A M X R-2 partition matrix}
 
-\item{loss}{The loss of the model when using this pooling structure}
+\item{new_loss}{The loss of the model when using this pooling structure}
 
-\item{num_pools}{Number of pools present in new_sigma}
+\item{new_num_pools}{Number of pools present in new_sigma}
 
-\item{profile}{Profile for the given sigma matrix.}
+\item{new_profile}{Profile for the given sigma matrix.}
+
+\item{new_dict}{A dictionary that maps policy_ids to pool_means for the giving pooling structure in model.}
 }
 \description{
 Inserts new model and it's corresponding loss into a RashomonSet Object
+#TODO: Consider changing this to S3
 }

@@ -17,7 +17,8 @@ find_rashomon_profile(
   normalize = 0,
   theta,
   filtered = TRUE,
-  inactive = 0
+  inactive = 0,
+  internal = 0
 )
 }
 \arguments{
@@ -51,6 +52,8 @@ loss of the model across all profiles. Defaults to zero.}
 \item{filtered}{Whether or not data is already filtered. Defaults to True.}
 
 \item{inactive}{The level that denotes an inactive arm in data. Defaults to zero.}
+
+\item{policy_label}{Column name of the policy_label in data.}
 }
 \value{
 A RashomonSet Object that gives all of the partition matrices in the

@@ -18,187 +18,190 @@
 #' @param theta Threshold value to be present in the RashomonSet. Set to Inf if you want all poolings.
 #' @param filtered Whether or not data is already filtered. Defaults to True.
 #' @param inactive The level that denotes an inactive arm in data. Defaults to zero.
+#' @param universal_policy_label Column name of policy_label that gives universal id across all profiles.
 #' @returns A RashomonSet Object that gives all of the partition matrices in the
 #' Rashomon Set for a given theta.
+#' @import utils
 #'
 #' @export
 
-find_rashomon_profile <- function(data, value, M,R,H, reg=1,
+find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
                                   profile,
                                   policies = c(),
-                                  policy_means=c(),
-                                  normalize=0,
+                                  policy_means = c(),
+                                  normalize = 0,
                                   theta,
-                                  filtered = TRUE,
-                                  inactive = 0){
-
-  if(!filtered){
-    data = subset_prof(data, policy_list = policies, profile = profile, inactive = inactive)
+                                  filtered = TRUE) {
+  if (!filtered) {
+    data <- subset_prof(data, policy_list = policies, profile = profile, inactive = inactive)
   }
 
-  if(max(R) == 2){
+  if (max(R) == 2) {
+    # TODO: Verify this is correct thing to do
+    sigma <- matrix(nrow = M, ncol = 1)
+    y <- pull(data, {{ value }})
+    mean <- mean(y)
+    mse <- mean((y - mean)^2)
 
-    #TODO: Verify this is correct thing to do
-    sigma = matrix(nrow = M, ncol = 1)
-    y = pull(data,{{value}})
-    mean = mean(y)
-    mse = mean((y - mean)^2)
-
-    if(normalize > 0){
-      mse = mse * nrow(data) / normalize
+    if (normalize > 0) {
+      mse <- mse * nrow(data) / normalize
     }
 
-    num_pools = 1
-    loss = mse + reg * num_pools
+    num_pools <- 1
+    loss <- mse + reg * num_pools
 
-    rashomon_set = RashomonSet(models = list(sigma),
-                               losses = c(loss),
-                               pools = list(num_pools),
-                               profiles = list(list(profile)))
+    rashomon_set <- RashomonSet(
+      models = list(sigma),
+      losses = c(loss),
+      pools = list(num_pools),
+      profiles = list(list(profile))
+    )
     return(rashomon_set)
   }
 
-  sigma = initialize_sigma(M, R)
-  hasse_edges = lattice_edges(sigma, policies)
+  sigma <- initialize_sigma(M, R)
+  hasse_edges <- lattice_edges(sigma, policies)
 
-  #creating list for compatibility
-  if(length(R) == 1){
-    R = rep(R, M)
+  # creating list for compatibility
+  if (length(R) == 1) {
+    R <- rep(R, M)
   }
 
-  #defining list, hash tables, and queue
-  rashomon_set = RashomonSet(models = list(),
-                             losses = numeric(),
-                             pools = list(),
-                             profiles = list())
+  # defining list, hash tables, and queue
+  rashomon_set <- new_RashomonSet(
+    models = list(),
+    losses = numeric(),
+    num_pools = list(),
+    profiles = list(),
+    pool_dictionaries = list()
+  )
 
-  seen_sigmas = hashtab()
-  seen_sigmas_sub = hashtab()
-  queue_sigma = collections::queue(items = NULL)
-  #pushing initial problems onto queue
-  for(i in 1:M){
-    if(!is.na(sigma[i,1])){
-      queue_sigma$push(list(sigma,i,0))
+  seen_sigmas <- hashtab()
+  seen_sigmas_sub <- hashtab()
+  queue_sigma <- collections::queue(items = NULL)
+  # pushing initial problems onto queue
+  for (i in 1:M) {
+    if (!is.na(sigma[i, 1])) {
+      queue_sigma$push(list(sigma, i, 0))
     }
   }
-  count = 0
-  #main queue loop
+  count <- 0
+  # main queue loop
 
-  while(queue_sigma$size() > 0){
-    count = count + 1
-    sigma_list = queue_sigma$pop()
+  while (queue_sigma$size() > 0) {
+    count <- count + 1
+    sigma_list <- queue_sigma$pop()
 
-    sigma = sigma_list[[1]]
-    i = sigma_list[[2]]
-    j = sigma_list[[3]]
+    sigma <- sigma_list[[1]]
+    i <- sigma_list[[2]]
+    j <- sigma_list[[3]]
     sethash(seen_sigmas_sub, sigma_list, 1)
 
-    if(num_pools(sigma,R) > H)
+    if (num_pools(sigma, R) > H) {
       next
-
-    sigma_1 = sigma
-    sigma_0 = sigma
-    sigma_1[i,j] = 1
-    sigma_0[i,j] = 0
-
-    #adding all subproblem variants
-    for(m in 1:M){
-
-      R_m = R[m]
-      j1 = 1
-      sigma_1_list = list(sigma_1, m, j1)
-
-      #have we seen this subproblem?
-      seen = gethash(seen_sigmas_sub, sigma_1_list, nomatch = 0)
-
-
-      #if we have seen it, and our cutting index is less than R_m - 2, consider further cuts
-      while(seen != 0 & j1 <= R_m - 2){
-        j1 = j1 + 1
-        sigma_1_list = list(sigma_1,m,j1)
-        seen = gethash(seen_sigmas_sub, sigma_1_list, nomatch = 0)
-      }
-
-      #if we haven't seen it and cutting is at a vlaid range, add it as a subproblem
-      if(j1 <= R_m -2 & seen == 0){
-        queue_sigma$push(sigma_1_list)
-        sethash(seen_sigmas_sub, sigma_1_list,1)
-      }
-
-      j0 = 1
-      sigma_0_list = list(sigma_0, m, j0)
-      seen = gethash(seen_sigmas_sub, sigma_0_list, nomatch = 0)
-
-      while(seen != 0 & j0 <= R_m - 2){
-        j0 = j0 + 1
-        sigma_0_list = list(sigma_0, m, j0)
-        seen = gethash(seen_sigmas_sub, sigma_0_list, nomatch = 0)
-      }
-
-      if(j0 <= R_m -2 & seen == 0){
-        queue_sigma$push(sigma_0_list)
-        sethash(seen_sigmas_sub, sigma_0_list,1)
-      }
-
     }
 
-    #computing B to check whether more splits is possible
+    sigma_1 <- sigma
+    sigma_0 <- sigma
+    sigma_1[i, j] <- 1
+    sigma_0[i, j] <- 0
 
-    #i had to add this condition... why does apara's code not need it?
-    if(j != ncol(sigma)){
-      B = compute_B(data, {{value}}, i, j, policy_means, sigma, policies, reg = reg, normalize = normalize,
-                    lattice_edges = hasse_edges, R)
+    # adding all subproblem variants
+    for (m in 1:M) {
+      R_m <- R[m]
+      j1 <- 1
+      sigma_1_list <- list(sigma_1, m, j1)
 
-      if(B > theta){
+      # have we seen this subproblem?
+      seen <- gethash(seen_sigmas_sub, sigma_1_list, nomatch = 0)
+
+
+      # if we have seen it, and our cutting index is less than R_m - 2, consider further cuts
+      while (seen != 0 & j1 <= R_m - 2) {
+        j1 <- j1 + 1
+        sigma_1_list <- list(sigma_1, m, j1)
+        seen <- gethash(seen_sigmas_sub, sigma_1_list, nomatch = 0)
+      }
+
+      # if we haven't seen it and cutting is at a vlaid range, add it as a subproblem
+      if (j1 <= R_m - 2 & seen == 0) {
+        queue_sigma$push(sigma_1_list)
+        sethash(seen_sigmas_sub, sigma_1_list, 1)
+      }
+
+      j0 <- 1
+      sigma_0_list <- list(sigma_0, m, j0)
+      seen <- gethash(seen_sigmas_sub, sigma_0_list, nomatch = 0)
+
+      while (seen != 0 & j0 <= R_m - 2) {
+        j0 <- j0 + 1
+        sigma_0_list <- list(sigma_0, m, j0)
+        seen <- gethash(seen_sigmas_sub, sigma_0_list, nomatch = 0)
+      }
+
+      if (j0 <= R_m - 2 & seen == 0) {
+        queue_sigma$push(sigma_0_list)
+        sethash(seen_sigmas_sub, sigma_0_list, 1)
+      }
+    }
+
+    # computing B to check whether more splits is possible
+
+    # i had to add this condition... why does apara's code not need it?
+    if (j != ncol(sigma)) {
+      B <- compute_B(data, {{ value }}, i, j, policy_means, sigma, policies,
+        reg = reg, normalize = normalize,
+        lattice_edges = hasse_edges, R
+      )
+
+      if (B > theta) {
         next
       }
-
     }
 
-    #Check if unsplit pool satisfies Rashomon threshold
-    if(gethash(seen_sigmas, sigma_1, nomatch = 0) == 0){
-      sethash(seen_sigmas, sigma_1,1)
+    # Check if unsplit pool satisfies Rashomon threshold
+    if (gethash(seen_sigmas, sigma_1, nomatch = 0) == 0) {
+      sethash(seen_sigmas, sigma_1, 1)
 
-      Q = compute_loss(data, {{value}}, policy_means, sigma_1, policies, reg = reg, normalize = normalize,
-                       lattice_edges = hasse_edges,R)
+      Q <- compute_loss(data, {{ value }}, policy_means, sigma_1, policies,
+        reg = reg, normalize = normalize,
+        lattice_edges = hasse_edges, R
+      )
 
-
-      if(Q <= theta){
-
-        n_pools = num_pools(sigma_1, R)
-        rashomon_set$insert_model(sigma_1, Q, n_pools, list(profile))
+      if (Q <= theta) {
+        n_pools <- num_pools(sigma_1, R)
+        rashomon_set = insert_model(rashomon_set, list(sigma_1), Q, n_pools, list(profile), NA)
       }
     }
-    #Check if split pool satisfies Rashomon threshold
-    if(gethash(seen_sigmas, sigma_0, nomatch = 0) == 0 & num_pools(sigma_0,R) <= H){
-      sethash(seen_sigmas, sigma_0,1)
+    # Check if split pool satisfies Rashomon threshold
+    if (gethash(seen_sigmas, sigma_0, nomatch = 0) == 0 & num_pools(sigma_0, R) <= H) {
+      sethash(seen_sigmas, sigma_0, 1)
 
-      Q = compute_loss(data, {{value}}, policy_means, sigma_0, policies, reg = reg, normalize = normalize,
-                       lattice_edges = hasse_edges,R)
+      Q <- compute_loss(data, {{ value }}, policy_means, sigma_0, policies,
+        reg = reg, normalize = normalize,
+        lattice_edges = hasse_edges, R
+      )
 
-      if(Q <= theta){
-
-        n_pools = num_pools(sigma_0, R)
-        rashomon_set$insert_model(sigma_0, Q, n_pools, list(profile))
-      }
-    }
-
-    sigma_1_list = list(sigma_1, i, j+1)
-    sigma_0_list = list(sigma_0, i, j+1)
-
-    #add child problems
-    if(j+1 < R[i] - 2){
-      if(gethash(seen_sigmas_sub, sigma_1_list, nomatch = 0) == 0){
-        queue_sigma$push(list(sigma_1,i, j + 1))
-      }
-      if(gethash(seen_sigmas_sub, sigma_0_list, nomatch = 0) == 0){
-        queue_sigma$push(list(sigma_0,i, j + 1))
+      if (Q <= theta) {
+        n_pools <- num_pools(sigma_0, R)
+        rashomon_set = insert_model(rashomon_set, list(sigma_0), Q, n_pools, list(profile), NA)
       }
     }
 
+    sigma_1_list <- list(sigma_1, i, j + 1)
+    sigma_0_list <- list(sigma_0, i, j + 1)
+
+    # add child problems
+    if (j + 1 < R[i] - 2) {
+      if (gethash(seen_sigmas_sub, sigma_1_list, nomatch = 0) == 0) {
+        queue_sigma$push(list(sigma_1, i, j + 1))
+      }
+      if (gethash(seen_sigmas_sub, sigma_0_list, nomatch = 0) == 0) {
+        queue_sigma$push(list(sigma_0, i, j + 1))
+      }
+    }
   }
   rashomon_set
-
 }
 #' @title Finds the RashomonSet of models for a given dataset.
 #'
@@ -226,110 +229,110 @@ aggregate_rashomon_profiles <- function(data,
                                         reg = 1,
                                         value,
                                         theta,
-                                        bruteforce = FALSE
-){
+                                        bruteforce = FALSE) {
+  num_profiles <- 2^M
+  profiles <- expand.grid(replicate(M, 0:1, simplify = FALSE))
+  # creating policy labels on data as well as list of all policies
 
-  num_profiles = 2^M
-  profiles = expand.grid(replicate(M, 0:1, simplify = FALSE))
-  #creating policy labels on data as well as list of all policies
-
-  if(length(R) == 1){
-    R = rep(R,M)
+  if (length(R) == 1) {
+    R <- rep(R, M)
   }
 
-  data_labeled <- assign_policy_label(data,...)
-  policy_list <- create_policies_from_data(data_labeled,...)
+  data_labeled <- assign_policy_label(data, ...)
+  policy_list <- create_policies_from_data(data_labeled, ...)
   num_data <- nrow(data_labeled)
   data_labeled$id <- 1:num_data
 
-  #Maximum number of pools for a profile derived from maximum number of pools
-  H_profile = H - num_profiles + 1
-  data_profile_ids = rep(0, num_data)
+  # Maximum number of pools for a profile derived from maximum number of pools
+  H_profile <- H - num_profiles + 1
+  data_profile_ids <- rep(0, num_data)
 
-  #initialize storage objects
-  D_profile = list()
-  eq_lb_profiles = rep(0, num_profiles)
-  rashomon_profiles = rep(0, num_profiles)
-  loss_object = rep(0, num_profiles)
+  # initialize storage objects
+  D_profile <- list()
+  eq_lb_profiles <- rep(0, num_profiles)
+  rashomon_profiles <- rep(0, num_profiles)
+  loss_object <- rep(0, num_profiles)
 
-  #Assign profile ids to each data point
-  for(i in 1:num_profiles){
+  # Assign profile ids to each data point
+  for (i in 1:num_profiles) {
+    # assign profile labels and extract appropriate subset
+    profile_i <- as.numeric(profiles[i, ])
+    data_i <- subset_prof(data_labeled, policy_list, profile_i, 0)
 
-    #assign profile labels and extract appropriate subset
-    profile_i = as.numeric(profiles[i,])
-    data_i = subset_prof(data_labeled, policy_list, profile_i, 0)
+    # store profile for each observation and subset corresponding to that profile
+    data_profile_ids[data_i$id] <- i
+    D_profile[i] <- list(data_i$id)
 
-    #store profile for each observation and subset corresponding to that profile
-    data_profile_ids[data_i$id] = i
-    D_profile[i] = list(data_i$id)
-
-    #if no policies correspond to that profile
-    if(length(data_i) == 0){
-      eq_lb_profiles[i] = 0
-      H_profile = H_profile + 1
+    # if no policies correspond to that profile
+    if (length(data_i) == 0) {
+      eq_lb_profiles[i] <- 0
+      H_profile <- H_profile + 1
+    } else {
+      eq_lb_profiles[i] <- find_profile_lower_bound(data_i, {{ value }})
     }
-
-    else{
-      eq_lb_profiles[i] = find_profile_lower_bound(data_i, {{value}})
-    }
-
   }
 
-  eq_lb_profiles =  eq_lb_profiles / num_data
-  eq_lb_sum = sum(eq_lb_profiles)
+  eq_lb_profiles <- eq_lb_profiles / num_data
+  eq_lb_sum <- sum(eq_lb_profiles)
 
-  #deal with control separately
-  control_loss = eq_lb_profiles[[1]] + reg
-  rashomon_profiles[1] = list(RashomonSet(models = list(NA),
-                                          losses = control_loss,
-                                          pools = list(1),
-                                          profiles = list(as.numeric(profiles[1,]))))
+  # deal with control separately
+  control_loss <- eq_lb_profiles[[1]] + reg
+  rashomon_profiles[1] <- list(new_RashomonSet(
+    models = list(NA),
+    losses = control_loss,
+    num_pools = list(1),
+    profiles = list(as.numeric(profiles[1, ])),
+    pool_dictionaries = list(1) # for now
+  ))
 
-  for(i in 2:num_profiles){
+  for (i in 2:num_profiles) {
+    # extracting relevant things to find rashomon set for this profile
+    data_i <- data_labeled[unlist(D_profile[i]), ]
 
-    #extracting relevant things to find rashomon set for this profile
-    data_i = data_labeled[unlist(D_profile[i]),]
-
-    if(nrow(data_i) == 0){
-      rashomon_profiles[i] = list(RashomonSet(models = list(NA),
-                                              losses = 0,
-                                              pools = list(0),
-                                              profiles = list(as.numeric(profiles[1,]))))
+    if (nrow(data_i) == 0) {
+      rashomon_profiles[i] <- list(new_RashomonSet(
+        models = list(NA),
+        losses = 0,
+        num_pools = list(0),
+        profiles = list(as.numeric(profiles[1, ])),
+        pool_dictionaries = list(0)
+      ))
       next
     }
 
-    profile_i = as.numeric(profiles[i,])
-    M_i = sum(profile_i)
-    R_i = R[as.logical(profile_i)]
-    #find profile_lower_bound to find theta_k
-    #lower_bound = compute_mse_loss(data,{{value}},)
-    theta_k = theta - (eq_lb_sum - eq_lb_profiles[i])
+    profile_i <- as.numeric(profiles[i, ])
+    M_i <- sum(profile_i)
+    R_i <- R[as.logical(profile_i)]
+    # find profile_lower_bound to find theta_k
+    # lower_bound = compute_mse_loss(data,{{value}},)
+    theta_k <- theta - (eq_lb_sum - eq_lb_profiles[i])
 
-    data_i = assign_policy_label(data_i, ...)
-    policy_list_i = create_policies_from_data(data_i, ...)
-    policy_list_i_masked = lapply(policy_list_i, function(x) x[as.logical(profile_i)])
-    means_i = policy_means(data_i, {{value}})
+    data_i$universal_id <- data_i$policy_label
+    data_i <- assign_policy_label(data_i, ...)
+    policy_list_i <- create_policies_from_data(data_i, ...)
+    policy_list_i_masked <- lapply(policy_list_i, function(x) x[as.logical(profile_i)])
+    means_i <- policy_means(data_i, {{ value }})
 
 
-    rashomon_i = find_rashomon_profile(data_i,
-                                       value = {{value}},
-                                       M = M_i,
-                                       R = R_i,
-                                       H = H_profile,
-                                       reg = reg,
-                                       profile = profile_i,
-                                       policies = policy_list_i_masked,
-                                       policy_means = means_i,
-                                       normalize = num_data,
-                                       theta = theta_k)
+    rashomon_i <- find_rashomon_profile(data_i,
+      value = {{ value }},
+      M = M_i,
+      R = R_i,
+      H = H_profile,
+      reg = reg,
+      profile = profile_i,
+      policies = policy_list_i_masked,
+      policy_means = means_i,
+      normalize = num_data,
+      theta = theta_k,
+      inactive = 0
+    )
 
-    invisible(rashomon_i$sort())
-    rashomon_profiles[i] = list(rashomon_i)
-
+    rashomon_i = sort(rashomon_i)
+    rashomon_profiles[i] <- list(rashomon_i)
   }
 
-  R_set = find_feasible_combinations(rashomon_profiles, theta, H, sorted = TRUE)
+  R_set <- find_feasible_combinations(rashomon_profiles, theta, H, sorted = TRUE)
 
   list(R_set, rashomon_profiles)
-
 }

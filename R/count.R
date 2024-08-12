@@ -41,10 +41,10 @@ sum_product_k <- function(arr) {
 #' @param sigma Partition matrix for a given pooling structure
 #' @returns A list (or integer) of the number of levels in each arm.
 #' @export
-find_R <- function(sigma){
-  R = rowSums(sigma, na.rm = TRUE) + 2
+find_R <- function(sigma) {
+  R <- rowSums(sigma, na.rm = TRUE) + 2
 
-  if(all(R[1] == R)){
+  if (all(R[1] == R)) {
     return(R[1])
   }
   return(R)
@@ -58,14 +58,14 @@ find_R <- function(sigma){
 #' we are assuming R is equal for all arms)
 #' @returns The number of pools given by this pooling structure
 #' @noRd
-num_pools_fixed_r <- function(sigma, R){
-  m = nrow(sigma)
-  z = rowSums(sigma)
-  z_sums = sum_product_k(z)
-  H = 0
-  for(i in 1:(m + 1)){
-    sign = (-1)^(i-1)
-    H = H + sign * z_sums[i] * ((R - 1))^(m - i +1)
+num_pools_fixed_r <- function(sigma, R) {
+  m <- nrow(sigma)
+  z <- rowSums(sigma)
+  z_sums <- sum_product_k(z)
+  H <- 0
+  for (i in 1:(m + 1)) {
+    sign <- (-1)^(i - 1)
+    H <- H + sign * z_sums[i] * ((R - 1))^(m - i + 1)
   }
   H
 }
@@ -76,49 +76,43 @@ num_pools_fixed_r <- function(sigma, R){
 #' @param R Vector of the number of levels for each arm
 #' @returns The number of pools given by this pooling structure
 #' @noRd
-num_pools_change_r <- function(sigma, R){
+num_pools_change_r <- function(sigma, R) {
+  m <- nrow(sigma)
+  R <- R - 1
+  R_prod <- prod(R)
 
-  m = nrow(sigma)
-  R = R - 1
-  R_prod = prod(R)
+  z <- rowSums(sigma, na.rm = TRUE)
+  indices <- 1:m
+  z_combs <- powerset(indices)
 
-  z = rowSums(sigma, na.rm = TRUE)
-  indices = 1:m
-  z_combs = powerset(indices)
+  # accounting for null case (subset of size 0)
+  H <- R_prod
 
-  #accounting for null case (subset of size 0)
-  H = R_prod
+  # due to R quirks, I split this up into subsets of size {1,..., n-1} and
+  # subset of size n, but its just the same code repeated.
 
-  #due to R quirks, I split this up into subsets of size {1,..., n-1} and
-  #subset of size n, but its just the same code repeated.
+  for (k in 2:length(z_combs)) {
+    subsets_k <- z_combs[[k]]
 
-  for(k in 2:length(z_combs)){
-    subsets_k = z_combs[[k]]
+    if (!is.null(nrow(subsets_k))) {
+      for (i in 1:ncol(subsets_k)) {
+        subset_ik <- subsets_k[, i]
 
-    if(!is.null(nrow(subsets_k))){
+        sign <- (-1)**length(subset_ik)
+        z_sum <- prod(z[as.vector(subset_ik)])
+        splits <- R_prod / prod(R[as.vector(subset_ik)])
 
-      for(i in 1:ncol(subsets_k)){
-
-        subset_ik = subsets_k[,i]
-
-        sign = (-1) ** length(subset_ik)
-        z_sum = prod(z[as.vector(subset_ik)])
-        splits = R_prod / prod(R[as.vector(subset_ik)])
-
-        H = H + sign * z_sum * splits
+        H <- H + sign * z_sum * splits
       }
+    } else {
+      subset_ik <- subsets_k
+
+      sign <- (-1)**length(subset_ik)
+      z_sum <- prod(z[as.vector(subset_ik)])
+      splits <- R_prod / prod(R[as.vector(subset_ik)])
+
+      H <- H + sign * z_sum * splits
     }
-    else{
-
-      subset_ik = subsets_k
-
-      sign = (-1) ** length(subset_ik)
-      z_sum = prod(z[as.vector(subset_ik)])
-      splits = R_prod / prod(R[as.vector(subset_ik)])
-
-      H = H + sign * z_sum * splits
-    }
-
   }
 
   H
@@ -145,24 +139,20 @@ powerset <- function(arr) {
 #' @param R A list (or integer) of the number of levels in each arm.
 #' @returns The number of pools given by the pooling structure sigma.
 #' @export
-num_pools <- function(sigma, R=NA){
-
-  if(all(is.na(sigma))){
+num_pools <- function(sigma, R = NA) {
+  if (all(is.na(sigma))) {
     return(1)
   }
 
-  if(all(is.na(R))){
-    R = find_R(sigma)
+  if (all(is.na(R))) {
+    R <- find_R(sigma)
   }
 
-  if(length(R) == 1){
-    H = num_pools_fixed_r(sigma,R)
-  }
-
-  else{
-    H = num_pools_change_r(sigma, R)
+  if (length(R) == 1) {
+    H <- num_pools_fixed_r(sigma, R)
+  } else {
+    H <- num_pools_change_r(sigma, R)
   }
 
   H
-
 }
