@@ -12,7 +12,8 @@ compute_mse_loss(
   policy_list,
   reg = 1,
   normalize = 0,
-  lattice_edges = NA
+  lattice_edges = NA,
+  return_dict = TRUE
 )
 }
 \arguments{
@@ -32,6 +33,9 @@ by the data.}
 \item{normalize}{Whether or not to normalize loss}
 
 \item{lattice_edges}{Edges of pooling structure}
+
+\item{return_dict}{Whether or not to return the dictionary object that gives the pool
+means for each model in the RashomonSet. Defaults to True.}
 }
 \value{
 MSE given sigma pooling structure and data.

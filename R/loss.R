@@ -16,7 +16,8 @@ policy_means <- function(data, value) {
       n = n(),
       mean = mean({{ value }}),
       .groups = "drop",
-      policy_label = policy_label[1]
+      policy_label = policy_label[1],
+      universal_label = universal_label[1]
     )
 }
 
@@ -62,11 +63,12 @@ pool_means <- function(data, value, pool) {
 
   pool_means_dict <- collections::dict()
   for (i in 1:nrow(means)) {
-    pool_means_dict$set(as.integer(pull(means, {{ pool }})[i]), pull(means, mean_pool)[i])
+    pool_means_dict$set(as.integer(pull(means, universal_label)[i]), pull(means, mean_pool)[i])
   }
 
   pool_means_dict
 }
+#TODO I CHANGED HERE, universal_label
 
 
 #' Maximally cuts in row i for use in the lookahead loss, up to column j.
@@ -118,12 +120,14 @@ extract_pools <- function(policy_list, sigma, lattice_edges = NA) {
 #' @param reg Regularization parameter that penalizes partitions with more pools
 #' @param normalize Whether or not to normalize loss
 #' @param lattice_edges Edges of pooling structure
+#' @param return_dict Whether or not to return the dictionary object that gives the pool
+#' means for each model in the RashomonSet. Defaults to True.
 #' @importFrom collections dict
 #' @import magrittr
 #' @import dplyr
 #' @returns MSE given sigma pooling structure and data.
 #' @export
-compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA) {
+compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA, return_dict = TRUE) {
   # Compute pools for new maximal split
   pool_dict <- extract_pools(policy_list, sigma, lattice_edges)
 
@@ -134,14 +138,15 @@ compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normal
   fixed_pool_means_dict <- pool_means(M_pool, mean, pool)
 
   # assign pool labels to data and extract pool labels
-  pools_data <- pools_to_data(data, pool_dict)$pool
+  universal_policy_labels <- data$universal_label
 
+  n <- length(universal_policy_labels)
   # vector for storing pool mean for each observation
-  pool_mean_data <- numeric(length(pools_data))
+  pool_mean_data <- numeric(n)
 
   # assigning pool mean to each observation
-  for (k in 1:length(pools_data)) {
-    pool_mean_data[k] <- fixed_pool_means_dict$get(as.integer(pools_data[k]))
+  for (k in 1:n) {
+    pool_mean_data[k] <- fixed_pool_means_dict$get(as.integer(universal_policy_labels[k]))
   }
 
   y <- dplyr::pull(data, {{ value }})
@@ -152,7 +157,12 @@ compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normal
     mse <- (mse * nrow(data) / normalize)
   }
 
-  mse
+  if(!return_dict){
+    return(mse)
+  }
+
+  return(list(mse = mse,
+              dictionary = fixed_pool_means_dict))
 }
 
 #' Computes penalization loss for data (regularization parameter * number of pools)
@@ -193,7 +203,7 @@ compute_B <- function(data, value, i, j, M, sigma, policy_list, reg = 1, normali
   # Split maximally across row, starting at point i, j:
   sigma_max_split <- partition_sigma(i, j, sigma)
 
-  mse <- compute_mse_loss(data, {{ value }}, M, sigma_max_split, policy_list, reg = reg, normalize = normalize, lattice_edges)
+  mse <- compute_mse_loss(data, {{ value }}, M, sigma_max_split, policy_list, reg = reg, normalize = normalize, lattice_edges, return_dict = FALSE)
 
   # least number of pools
   # least bad penalty for complexity
@@ -218,14 +228,24 @@ compute_B <- function(data, value, i, j, M, sigma, policy_list, reg = 1, normali
 #' @param normalize Whether or not to normalize loss
 #' @param lattice_edges Edges of pooling structure
 #' @param R A list (or integer) of the number of levels in each arm.
+#' @param return_dict Whether or not to return the dictionary object that gives the pool
+#' means for each model in the RashomonSet. Defaults to True.
 #' @importFrom collections dict
 #' @import magrittr
 #' @import dplyr
 #' @export
 #' @returns Loss given pool for the data
-compute_loss <- function(data, value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA, R) {
-  mse <- compute_mse_loss(data, {{ value }}, M, sigma, policy_list, reg = 1, normalize = normalize, lattice_edges)
+compute_loss <- function(data, value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA, R, return_dict = TRUE) {
+  mse <- compute_mse_loss(data, {{ value }}, M, sigma, policy_list, reg = 1, normalize = normalize, lattice_edges, return_dict = TRUE)
   reg_loss <- compute_penalization_loss(sigma, R, reg)
 
-  mse + reg_loss
+
+  if(!return_dict){
+    loss = mse + reg_loss
+    return(loss)
+  }
+
+  loss = mse[[1]] + reg_loss
+
+  return(list(loss = loss, dict = mse[[2]]))
 }

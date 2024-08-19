@@ -16,13 +16,12 @@ find_rashomon_profile(
   policy_means = c(),
   normalize = 0,
   theta,
-  filtered = TRUE,
-  inactive = 0,
-  internal = 0
+  filtered = FALSE,
+  inactive = 0
 )
 }
 \arguments{
-\item{data}{A dataframe containing the column whose name you supply in value}
+\item{data}{A dataframe containing the column whose name you supply in value.}
 
 \item{value}{The column name of the y values in data}
 
@@ -49,11 +48,10 @@ loss of the model across all profiles. Defaults to zero.}
 
 \item{theta}{Threshold value to be present in the RashomonSet. Set to Inf if you want all poolings.}
 
-\item{filtered}{Whether or not data is already filtered. Defaults to True.}
+\item{filtered}{Whether or not data is already filtered to be only the observations in the given
+profile. Defaults to True.}
 
 \item{inactive}{The level that denotes an inactive arm in data. Defaults to zero.}
-
-\item{policy_label}{Column name of the policy_label in data.}
 }
 \value{
 A RashomonSet Object that gives all of the partition matrices in the

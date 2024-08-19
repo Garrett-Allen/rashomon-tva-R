@@ -33,6 +33,22 @@ assign_policy_label <- function(data, ...) {
     mutate(policy_label = cur_group_id()) %>%
     ungroup()
 }
+
+#' @title Assign policy labels to data
+#' @description Assigns policy labels to data for use in create_policies_from_data. It will
+#' assign a unique id to each unique treatment combination present in data.
+#'
+#' @param data Dataframe containing the treatment assignments
+#' @param ... Column names where the different arm labels are located.
+#' @import dplyr
+#' @import magrittr
+#' @export
+assign_universal_label <- function(data, ...) {
+  data %>%
+    group_by(...) %>%
+    mutate(universal_label = cur_group_id()) %>%
+    ungroup()
+}
 #' @title Generate list of policies present in data
 #' Creates all factor combinations in a factorial design from the data, for
 #' use downstream in functions that require policy_list as a parameter.

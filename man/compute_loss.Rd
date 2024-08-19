@@ -13,7 +13,8 @@ compute_loss(
   reg = 1,
   normalize = 0,
   lattice_edges = NA,
-  R
+  R,
+  return_dict = TRUE
 )
 }
 \arguments{
@@ -35,6 +36,9 @@ by the data.}
 \item{lattice_edges}{Edges of pooling structure}
 
 \item{R}{A list (or integer) of the number of levels in each arm.}
+
+\item{return_dict}{Whether or not to return the dictionary object that gives the pool
+means for each model in the RashomonSet. Defaults to True.}
 }
 \value{
 Loss given pool for the data

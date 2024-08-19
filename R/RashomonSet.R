@@ -1,12 +1,12 @@
 #' @title Rashomon Set
 #' @description This class stores members of the RashomonSet. This can be used to both form the RashomonSet for a given
 #' profile and a single member of the RashomonSet across all profiles.
-#' @field models The M X R-2 partition matrices that give the pooling structure for
+#' @param models The M X R-2 partition matrices that give the pooling structure for
 #' their profile
-#' @field losses The losses for each of the models when evaluated on their profile
-#' @field num_pools The number of pools in the each of the models when evaluated on their profile
-#' @field profiles The profiles for each of the models.
-#' @field pool_dictionaries A list of collections::dict() objects that maps policy_ids
+#' @param losses The losses for each of the models when evaluated on their profile
+#' @param num_pools The number of pools in the each of the models when evaluated on their profile
+#' @param profiles The profiles for each of the models.
+#' @param pool_dictionaries A list of collections::dict() objects that maps policy_ids
 #' to pool_means for the given pooling structure in model.
 #' @export
 new_RashomonSet <- function(models = list(),
@@ -47,8 +47,9 @@ insert_model <- function(obj, new_sigma, new_loss, new_num_pools, new_profile, n
 }
 
 #' Sorts this rashomon set according to the model with the smallest loss.
+#' @param obj A RashomonSet object
 #' @export
-sort.RashomonSet <- function(obj){
+sort_rashomon <- function(obj){
   order <- order(obj$losses)
 
   obj$models <- obj$models[order]
@@ -60,4 +61,39 @@ sort.RashomonSet <- function(obj){
   obj
 }
 
+#' Combines all of the dictionaries of a RashomonSet object to form one dictionary.
+#' @param obj A RashomonSet object
+#' @param newdata Data that we want to predict given our model object. Must contain
+#' column universal_labels from output of assign_universal_labels(), and these labels
+#' must correspond to the same policies as in the data passed to aggregate_rashomon_profiles()
+#' or find_rashomon_profile()
+#' @export
+combine_pool_dictionaries <- function(obj){
+
+  total_dict <- list()
+
+  for(dict in obj$pool_dictionaries){
+    total_dict <- append(total_dict, dict$as_list())
+  }
+
+  collections::dict(items = unname(total_dict), keys = names(total_dict))
+}
+
+#' Gernerates predictions from a model in the RashomonSet
+#' @param obj A RashomonSet object
+#' @param newdata A dataframe. Must contain column universal_labels from output of assign_universal_labels(), and these labels
+#' must correspond to the same policies as in the data passed to aggregate_rashomon_profiles()
+#' or find_rashomon_profile()
+#' @export
+predict.RashomonSet <- function(obj, data){
+
+  total_dict <- combine_pool_dictionaries(obj)
+
+  pred <- c()
+  for(i in 1:nrow(data)){
+    pred[i] <- total_dict$get(as.character(data$universal_label[i]))
+  }
+  data$predictions <- pred
+  data
+}
 

@@ -13,7 +13,8 @@ aggregate_rashomon_profiles(
   reg = 1,
   value,
   theta,
-  bruteforce = FALSE
+  bruteforce = FALSE,
+  inactive = 0
 )
 }
 \arguments{
@@ -37,9 +38,11 @@ a pooling structure. Defaults to 1, so that each additional pool in a model adds
 
 \item{bruteforce}{Whether the RashomonSet should be found via bruteforce. Currently unimplemented,
 defaults to FALSE.}
+
+\item{inactive}{The level that denotes an inactive arm in data. Defaults to zero.}
 }
 \value{
-A RashomonSet Object that gives all of the partition matrices in the
+A list of RashomonSet Objects that gives all of the partition matrices in the
 Rashomon Set for a given theta.
 }
 \description{

@@ -64,6 +64,12 @@ data %>%
   mutate(mean = mean(value)) %>% 
   summarize(mse = mean((value-mean)^2))
 
+
+#last things to do: 
+
+# add collections::dict()- think carefully about how I want this to work
+# add predict function
+otherwise done!
 ```
 
 ```{r}
@@ -134,7 +140,7 @@ compute_loss <- function(model) {
 
 ```{r}
 
-
+combine_pool_dictionaries(rashomon_set){}
 
 x <- c(2,1,3)
 

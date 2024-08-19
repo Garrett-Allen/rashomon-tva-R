@@ -1,6 +1,6 @@
 #' @title Finds the RashomonSet for a given profile.
 #'
-#' @param data A dataframe containing the column whose name you supply in value
+#' @param data A dataframe containing the column whose name you supply in value.
 #' @param value The column name of the y values in data
 #' @param M The number of arms
 #' @param R An integer (or vector) denoting the number of levels in each arm. If
@@ -16,9 +16,9 @@
 #' to the size of the total dataset, so that each loss represents contribution to the overall
 #' loss of the model across all profiles. Defaults to zero.
 #' @param theta Threshold value to be present in the RashomonSet. Set to Inf if you want all poolings.
-#' @param filtered Whether or not data is already filtered. Defaults to True.
+#' @param filtered Whether or not data is already filtered to be only the observations in the given
+#' profile. Defaults to True.
 #' @param inactive The level that denotes an inactive arm in data. Defaults to zero.
-#' @param universal_policy_label Column name of policy_label that gives universal id across all profiles.
 #' @returns A RashomonSet Object that gives all of the partition matrices in the
 #' Rashomon Set for a given theta.
 #' @import utils
@@ -31,7 +31,14 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
                                   policy_means = c(),
                                   normalize = 0,
                                   theta,
-                                  filtered = TRUE) {
+                                  filtered = FALSE,
+                                  inactive = 0) {
+
+  if(is.null(data$universal_label)){
+    warning("No universal label assigned; please run your data through assign_universal_label() to use pool_dictionaries in output")
+    data <- assign_universal_label(data,...)
+  }
+
   if (!filtered) {
     data <- subset_prof(data, policy_list = policies, profile = profile, inactive = inactive)
   }
@@ -50,11 +57,12 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
     num_pools <- 1
     loss <- mse + reg * num_pools
 
-    rashomon_set <- RashomonSet(
+    rashomon_set <- new_RashomonSet(
       models = list(sigma),
       losses = c(loss),
-      pools = list(num_pools),
-      profiles = list(list(profile))
+      num_pools = list(num_pools),
+      profiles = list(list(profile),
+      pools_dictionaries = list(mean))
     )
     return(rashomon_set)
   }
@@ -149,9 +157,17 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
 
     # i had to add this condition... why does apara's code not need it?
     if (j != ncol(sigma)) {
-      B <- compute_B(data, {{ value }}, i, j, policy_means, sigma, policies,
-        reg = reg, normalize = normalize,
-        lattice_edges = hasse_edges, R
+      B <- compute_B(data,
+                     {{ value }},
+                     i,
+                     j,
+                     policy_means,
+                     sigma,
+                     policies,
+                     reg = reg,
+                     normalize = normalize,
+                     lattice_edges = hasse_edges,
+                     R
       )
 
       if (B > theta) {
@@ -163,28 +179,42 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
     if (gethash(seen_sigmas, sigma_1, nomatch = 0) == 0) {
       sethash(seen_sigmas, sigma_1, 1)
 
-      Q <- compute_loss(data, {{ value }}, policy_means, sigma_1, policies,
-        reg = reg, normalize = normalize,
-        lattice_edges = hasse_edges, R
+      Q <- compute_loss(data,
+                        {{ value }},
+                        policy_means,
+                        sigma_1,
+                        policies,
+                        reg = reg,
+                        normalize = normalize,
+                        lattice_edges = hasse_edges,
+                        R,
+                        return_dict = TRUE
       )
 
-      if (Q <= theta) {
+      if (Q[[1]] <= theta) {
         n_pools <- num_pools(sigma_1, R)
-        rashomon_set = insert_model(rashomon_set, list(sigma_1), Q, n_pools, list(profile), NA)
+        rashomon_set = insert_model(rashomon_set, list(sigma_1), Q[[1]], n_pools, list(profile), Q[[2]])
       }
     }
     # Check if split pool satisfies Rashomon threshold
     if (gethash(seen_sigmas, sigma_0, nomatch = 0) == 0 & num_pools(sigma_0, R) <= H) {
       sethash(seen_sigmas, sigma_0, 1)
 
-      Q <- compute_loss(data, {{ value }}, policy_means, sigma_0, policies,
-        reg = reg, normalize = normalize,
-        lattice_edges = hasse_edges, R
+      Q <- compute_loss(data,
+                        {{ value }},
+                        policy_means,
+                        sigma_0,
+                        policies,
+                        reg = reg,
+                        normalize = normalize,
+                        lattice_edges = hasse_edges,
+                        R,
+                        return_dict = TRUE
       )
 
-      if (Q <= theta) {
+      if (Q[[1]] <= theta) {
         n_pools <- num_pools(sigma_0, R)
-        rashomon_set = insert_model(rashomon_set, list(sigma_0), Q, n_pools, list(profile), NA)
+        rashomon_set = insert_model(rashomon_set, list(sigma_0), Q[[1]], n_pools, list(profile), Q[[2]])
       }
     }
 
@@ -200,6 +230,9 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
         queue_sigma$push(list(sigma_0, i, j + 1))
       }
     }
+  }
+  if(length(rashomon_set$models) == 0){
+    return(NULL)
   }
   rashomon_set
 }
@@ -217,7 +250,8 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
 #' @param theta Threshold value to be present in the RashomonSet. Set to Inf if you want all poolings.
 #' @param bruteforce Whether the RashomonSet should be found via bruteforce. Currently unimplemented,
 #' defaults to FALSE.
-#' @returns A RashomonSet Object that gives all of the partition matrices in the
+#' @param inactive The level that denotes an inactive arm in data. Defaults to zero.
+#' @returns A list of RashomonSet Objects that gives all of the partition matrices in the
 #' Rashomon Set for a given theta.
 #'
 #' @export
@@ -229,7 +263,14 @@ aggregate_rashomon_profiles <- function(data,
                                         reg = 1,
                                         value,
                                         theta,
-                                        bruteforce = FALSE) {
+                                        bruteforce = FALSE,
+                                        inactive = 0) {
+
+  if(is.null(data$universal_label)){
+    warning("No universal label assigned; please run your data through assign_universal_label() to use pool_dictionaries in output")
+    data <- assign_universal_label(data,...)
+  }
+
   num_profiles <- 2^M
   profiles <- expand.grid(replicate(M, 0:1, simplify = FALSE))
   # creating policy labels on data as well as list of all policies
@@ -248,16 +289,18 @@ aggregate_rashomon_profiles <- function(data,
   data_profile_ids <- rep(0, num_data)
 
   # initialize storage objects
-  D_profile <- list()
   eq_lb_profiles <- rep(0, num_profiles)
   rashomon_profiles <- rep(0, num_profiles)
   loss_object <- rep(0, num_profiles)
+  D_profile <- list()
 
   # Assign profile ids to each data point
+  control_univ_id = -1
+
   for (i in 1:num_profiles) {
     # assign profile labels and extract appropriate subset
     profile_i <- as.numeric(profiles[i, ])
-    data_i <- subset_prof(data_labeled, policy_list, profile_i, 0)
+    data_i <- subset_prof(data_labeled, policy_list, profile_i, inactive)
 
     # store profile for each observation and subset corresponding to that profile
     data_profile_ids[data_i$id] <- i
@@ -267,7 +310,13 @@ aggregate_rashomon_profiles <- function(data,
     if (length(data_i) == 0) {
       eq_lb_profiles[i] <- 0
       H_profile <- H_profile + 1
-    } else {
+    }
+
+    else {
+      if(i == 1){
+        control_univ_id = data_i$universal_label[1]
+        control_mean = mean(pull(data,{{value}}), na.rm = TRUE)
+      }
       eq_lb_profiles[i] <- find_profile_lower_bound(data_i, {{ value }})
     }
   }
@@ -277,12 +326,13 @@ aggregate_rashomon_profiles <- function(data,
 
   # deal with control separately
   control_loss <- eq_lb_profiles[[1]] + reg
+  control_dict = collections::dict(keys = as.integer(control_univ_id), items = control_mean)
   rashomon_profiles[1] <- list(new_RashomonSet(
     models = list(NA),
     losses = control_loss,
     num_pools = list(1),
     profiles = list(as.numeric(profiles[1, ])),
-    pool_dictionaries = list(1) # for now
+    pool_dictionaries = list(control_dict)
   ))
 
   for (i in 2:num_profiles) {
@@ -307,7 +357,6 @@ aggregate_rashomon_profiles <- function(data,
     # lower_bound = compute_mse_loss(data,{{value}},)
     theta_k <- theta - (eq_lb_sum - eq_lb_profiles[i])
 
-    data_i$universal_id <- data_i$policy_label
     data_i <- assign_policy_label(data_i, ...)
     policy_list_i <- create_policies_from_data(data_i, ...)
     policy_list_i_masked <- lapply(policy_list_i, function(x) x[as.logical(profile_i)])
@@ -325,14 +374,24 @@ aggregate_rashomon_profiles <- function(data,
       policy_means = means_i,
       normalize = num_data,
       theta = theta_k,
-      inactive = 0
+      inactive = 0,
+      filtered = TRUE
     )
 
-    rashomon_i = sort(rashomon_i)
+    if(is.null(rashomon_i)){
+      cat(paste0("No models in the RashomonSet for profile: ", profile_i, "\n"))
+      next
+    }
+    rashomon_i = sort_rashomon(rashomon_i)
     rashomon_profiles[i] <- list(rashomon_i)
   }
 
+  if(length(rashomon_profiles) < num_profiles){
+    print("No models in the rashomon set")
+    return(list())
+  }
   R_set <- find_feasible_combinations(rashomon_profiles, theta, H, sorted = TRUE)
 
-  list(R_set, rashomon_profiles)
+  rset = list(R_set, rashomon_profiles)
+  make_rashomon_objects(rset)
 }

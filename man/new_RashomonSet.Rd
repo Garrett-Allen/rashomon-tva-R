@@ -12,23 +12,20 @@ new_RashomonSet(
   pool_dictionaries = list()
 )
 }
+\arguments{
+\item{models}{The M X R-2 partition matrices that give the pooling structure for
+their profile}
+
+\item{losses}{The losses for each of the models when evaluated on their profile}
+
+\item{num_pools}{The number of pools in the each of the models when evaluated on their profile}
+
+\item{profiles}{The profiles for each of the models.}
+
+\item{pool_dictionaries}{A list of collections::dict() objects that maps policy_ids
+to pool_means for the given pooling structure in model.}
+}
 \description{
 This class stores members of the RashomonSet. This can be used to both form the RashomonSet for a given
 profile and a single member of the RashomonSet across all profiles.
 }
-\section{Fields}{
-
-\describe{
-\item{\code{models}}{The M X R-2 partition matrices that give the pooling structure for
-their profile}
-
-\item{\code{losses}}{The losses for each of the models when evaluated on their profile}
-
-\item{\code{num_pools}}{The number of pools in the each of the models when evaluated on their profile}
-
-\item{\code{profiles}}{The profiles for each of the models.}
-
-\item{\code{pool_dictionaries}}{A list of collections::dict() objects that maps policy_ids
-to pool_means for the given pooling structure in model.}
-}}
-

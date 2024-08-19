@@ -58,7 +58,7 @@ find_feasible_combinations <- function(rashomon_profiles, theta, H, sorted = FAL
   # sorting so we can pass into the feasible_sums function
   if (!sorted) {
     for (i in 1:length(rashomon_profiles)) {
-      rset[i] = sort(rset[i])
+      rset[i] = sort_rashomon(rset[i])
     }
   }
 
