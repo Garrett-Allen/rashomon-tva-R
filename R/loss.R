@@ -1,29 +1,28 @@
 #' Finds policy labels given data with each observation labeled with its policy
 #' TODO: Change all function calls from other packages to be explicit, and
 #' change if necessary for speedups.
-#' @param data Dataframe containing the treatment assignments
-#' @param value Name of value column observed for each observation, supplied by the user.
-#' @returns A dataframe of policy means, where each row is the mean for a given policy.
+#' @param data Data.table containing the treatment assignments
+#' @param value Name of value column observed for each observation, supplied by the user. Must be character.
+#' @returns A Data.table of policy means, where each row is the mean for a given policy.
 #' @import magrittr
 #' @import dplyr
 #' @export
 policy_means <- function(data, value) {
-  # convert to data.table
-  data %>%
-    dplyr::group_by(policy_label) %>%
-    dplyr::summarize(
-      sum = sum({{ value }}, na.rm = TRUE),
-      n = n(),
-      mean = mean({{ value }}),
-      .groups = "drop",
-      policy_label = policy_label[1],
-      universal_label = universal_label[1]
-    )
+
+  result <- data[, .(
+    sum = sum(.SD[[1]], na.rm = TRUE),
+    n = .N,
+    mean = mean(.SD[[1]], na.rm = TRUE),
+    policy_label = policy_label[1],
+    universal_label = universal_label[1]
+  ), by = policy_label, .SDcols = value]
+
+  return(result)
 }
 
 #' Assigns pools to observations in data given a dictionary of pools.
 #'
-#' @param data Dataframe containing the treatment assignments
+#' @param data Data.table containing the treatment assignments
 #' @param pools_dict A collections::dict object from extract_pools() that
 #' takes in a policy id and outputs the pool it is in.
 #' @returns A list of the sums of the products of size k, where the (k+1)th element
@@ -31,7 +30,7 @@ policy_means <- function(data, value) {
 #' @importFrom collections dict
 #' @export
 pools_to_data <- function(data, pools_dict) {
-  policy_label <- as.integer(dplyr::pull(data, policy_label))
+  policy_label <- as.integer(data[,policy_label])
 
   len_data <- length(policy_label)
 
@@ -47,24 +46,22 @@ pools_to_data <- function(data, pools_dict) {
 
 
 #' Finds pool means given data, value, and pool label
-#' @param data Dataframe containing the treatment assignments
-#' @param value Name of value column observed for each observation, supplied by the user.
-#' @param pool Name of pool column
+#' @param data Data.table containing the treatment assignments
+#' @param value Name of value column observed for each observation, supplied by the user. Must be character.
 #' @returns A collections::dict() object, where the key is an integer i corresponding
 #' to the pool id and its value is the mean of that pool.
 #' @importFrom collections dict
 #' @import magrittr
 #' @import dplyr
 #' @export
-pool_means <- function(data, value, pool) {
-  means <- data %>%
-    group_by({{ pool }}) %>%
-    mutate(mean_pool = mean({{ value }}))
+pool_means <- function(data, value){
 
-  pool_means_dict <- collections::dict()
-  for (i in 1:nrow(means)) {
-    pool_means_dict$set(as.integer(pull(means, universal_label)[i]), pull(means, mean_pool)[i])
-  }
+  data[, mean_pool := mean(.SD[[1]], na.rm = TRUE), by = pool, .SDcols = value]
+
+  univ_labels <- as.integer(data[,universal_label])
+  mean_pools <- data[,mean_pool]
+
+  pool_means_dict <- collections::dict(items = mean_pools, keys = univ_labels)
 
   pool_means_dict
 }
@@ -111,9 +108,9 @@ extract_pools <- function(policy_list, sigma, lattice_edges = NA) {
 
 #' MSE loss for data (y_i - pool_mean_i)^2 for i in pool i.
 #'
-#' @param data Dataframe containing the treatment assignments
+#' @param data Data.table containing the treatment assignments
 #' @param value Label of column containing value observed for each individual
-#' @param M Dataframe of policy means
+#' @param M Data.table of policy means
 #' @param sigma Partition matrix that gives pooling structure
 #' @param policy_list List of policies, which if a list of vectors of all policies implied
 #' by the data.
@@ -135,7 +132,7 @@ compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normal
   M_pool <- pools_to_data(M, pool_dict)
 
   # dictionary of pool means of type cc:dictionary()
-  fixed_pool_means_dict <- pool_means(M_pool, mean, pool)
+  fixed_pool_means_dict <- pool_means(M_pool, "mean")
 
   # assign pool labels to data and extract pool labels
   universal_policy_labels <- data$universal_label
@@ -149,7 +146,7 @@ compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normal
     pool_mean_data[k] <- fixed_pool_means_dict$get(as.integer(universal_policy_labels[k]))
   }
 
-  y <- dplyr::pull(data, {{ value }})
+  y <- dplyr::pull(data, value)
 
   mse <- (yardstick::rmse_vec(pool_mean_data, y))^2
 
@@ -182,11 +179,11 @@ compute_penalization_loss <- function(sigma, R, reg) {
 
 #' Look-ahead loss (B) to know when we need not continue with a given sigma.
 #'
-#' @param data User supplied dataframe that contains values
+#' @param data User supplied Data.table that contains values
 #' @param value Label of column containing value observed for each individual
 #' @param i Row to split at in sigma
 #' @param j Column to split from in sigma
-#' @param M Dataframe of policy means
+#' @param M Data.table of policy means
 #' @param sigma Partition matrix that gives pooling structure
 #' @param policy_list List of policies, which if a list of vectors of all policies implied
 #' by the data.
@@ -203,7 +200,7 @@ compute_B <- function(data, value, i, j, M, sigma, policy_list, reg = 1, normali
   # Split maximally across row, starting at point i, j:
   sigma_max_split <- partition_sigma(i, j, sigma)
 
-  mse <- compute_mse_loss(data, {{ value }}, M, sigma_max_split, policy_list, reg = reg, normalize = normalize, lattice_edges, return_dict = FALSE)
+  mse <- compute_mse_loss(data, value, M, sigma_max_split, policy_list, reg = reg, normalize = normalize, lattice_edges, return_dict = FALSE)
 
   # least number of pools
   # least bad penalty for complexity
@@ -218,9 +215,9 @@ compute_B <- function(data, value, i, j, M, sigma, policy_list, reg = 1, normali
 }
 #' Loss given a specific pooling stucture (sigma)
 #'
-#' @param data User supplied dataframe that contains values
+#' @param data User supplied Data.table that contains values
 #' @param value Label of column containing value observed for each observation
-#' @param M Dataframe of policy means
+#' @param M Data.table of policy means
 #' @param sigma Partition matrix that gives pooling structure
 #' @param policy_list List of policies, which if a list of vectors of all policies implied
 #' by the data.
@@ -236,7 +233,7 @@ compute_B <- function(data, value, i, j, M, sigma, policy_list, reg = 1, normali
 #' @export
 #' @returns Loss given pool for the data
 compute_loss <- function(data, value, M, sigma, policy_list, reg = 1, normalize = 0, lattice_edges = NA, R, return_dict = TRUE) {
-  mse <- compute_mse_loss(data, {{ value }}, M, sigma, policy_list, reg = 1, normalize = normalize, lattice_edges, return_dict = TRUE)
+  mse <- compute_mse_loss(data, value, M, sigma, policy_list, reg = 1, normalize = normalize, lattice_edges, return_dict = TRUE)
   reg_loss <- compute_penalization_loss(sigma, R, reg)
 
 

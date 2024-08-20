@@ -6,12 +6,12 @@
 Creates all factor combinations in a factorial design from the data, for
 use downstream in functions that require policy_list as a parameter.}
 \usage{
-create_policies_from_data(data, ...)
+create_policies_from_data(data, arm_cols)
 }
 \arguments{
-\item{data}{Dataframe containing the  treatment assignments}
+\item{data}{Data.table containing the  treatment assignments}
 
-\item{...}{Column names where the different arm labels are located.}
+\item{arm_cols}{A character vector containing the names of the arm columns}
 }
 \description{
 Generate list of policies present in data

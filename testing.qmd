@@ -2,6 +2,7 @@
 library(rashomontva)
 library(collections)
 library(tidyverse)
+library(data.table)
 ```
 
 ```{r}
@@ -73,21 +74,7 @@ otherwise done!
 ```
 
 ```{r}
-data <- read.csv("output.csv") %>%
-  rename(
-    arm1 = "X0",
-    arm2 = "X1",
-    arm3 = "X2",
-    id = "X",
-    observation = "Y"
-  ) %>%
-  select(-D)
 
-M <- 3
-R <- c(4, 3, 3)
-H <- Inf
-theta <- 13
-lamb <- 1
 
 rset <- aggregate_rashomon_profiles(data,
   arm1,
@@ -140,9 +127,107 @@ compute_loss <- function(model) {
 
 ```{r}
 
-combine_pool_dictionaries(rashomon_set){}
+library(profvis)
+profvis({
+data <- assign_universal_label(data, arm1, arm2, arm3)
 
-x <- c(2,1,3)
+rset <- aggregate_rashomon_profiles(data,
+  arm1,
+  arm2,
+  arm3,
+  M = M,
+  H = H,
+  R = R,
+  reg = lamb,
+  value = observation,
+  theta = theta
+)
+  
+})
+```
 
-sort(x)
+```{r}
+
+M <- 3
+R <- c(4, 3, 3)
+H <- Inf
+theta <- 26
+lamb <- 1
+
+data <- read.csv("output.csv") %>%
+  rename(
+    arm1 = "X0",
+    arm2 = "X1",
+    arm3 = "X2",
+    id = "X",
+    observation = "Y"
+  ) %>%
+  select(-D)
+
+group_cols = c("arm1","arm2","arm3")
+data <- assign_universal_label(data, c("arm1","arm2","arm3"))
+data <- assign_policy_label(data, group_cols)
+
+begin <- Sys.time()
+
+library(profvis)
+profvis({
+rset <- aggregate_rashomon_profiles(data, 
+                                    arm_cols = c("arm1","arm2","arm3"),
+  M = M,
+  H = H,
+  R = R,
+  reg = lamb,
+  value = "observation",
+  theta = theta
+)
+})
+
+print(end - begin)
+
+```
+
+```{r}
+data <- read.csv("output.csv") %>%
+  rename(
+    arm1 = "X0",
+    arm2 = "X1",
+    arm3 = "X2",
+    id = "X",
+    observation = "Y"
+  ) %>%
+  select(-D)
+
+M <- 3
+R <- c(4, 3, 3)
+H <- Inf
+theta <- 26
+lamb <- 1
+
+
+
+
+begin <- Sys.time()
+data_tbl <- setDT(data)
+end <- Sys.time()
+
+print(end - begin)
+
+#normal
+begin_tidy <- Sys.time()
+
+end_tidy <- Sys.time()
+
+print(paste0("Tidyverse timing: ", end_tidy - begin_tidy))
+#new
+
+
+
+
+#normal
+begin_tbl <- Sys.time()
+data_tbl[, policy_label := .GRP, by = .(arm1,arm2,arm3)]
+end_tbl <- Sys.time()
+
+print(paste0("Tidyverse timing: ", end_tbl - begin_tbl))
 ```

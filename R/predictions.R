@@ -1,5 +1,5 @@
 #' Makes output from aggregate_rashomon_partitions cleaner
-#' @noRd
+#' @export
 make_rashomon_objects <- function(rset) {
   rash_models <- list()
   for (x in rset[[1]]) {

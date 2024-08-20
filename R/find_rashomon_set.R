@@ -2,6 +2,7 @@
 #'
 #' @param data A dataframe containing the column whose name you supply in value.
 #' @param value The column name of the y values in data
+#' @param arm_cols A character vector containing the names of the arm columns
 #' @param M The number of arms
 #' @param R An integer (or vector) denoting the number of levels in each arm. If
 #' this value is an integer, it assumes each arm has the same number of levels.
@@ -25,18 +26,25 @@
 #'
 #' @export
 
-find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
+find_rashomon_profile <- function(data,
+                                  value,
+                                  arm_cols = c(),
+                                  M,
+                                  R,
+                                  H,
+                                  reg = 1,
                                   profile,
                                   policies = c(),
                                   policy_means = c(),
                                   normalize = 0,
                                   theta,
                                   filtered = FALSE,
-                                  inactive = 0) {
+                                  inactive = 0
+                                  ){
 
   if(is.null(data$universal_label)){
     warning("No universal label assigned; please run your data through assign_universal_label() to use pool_dictionaries in output")
-    data <- assign_universal_label(data,...)
+    data <- assign_universal_label(data, arm_cols)
   }
 
   if (!filtered) {
@@ -46,7 +54,7 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
   if (max(R) == 2) {
     # TODO: Verify this is correct thing to do
     sigma <- matrix(nrow = M, ncol = 1)
-    y <- pull(data, {{ value }})
+    y <- pull(data, value)
     mean <- mean(y)
     mse <- mean((y - mean)^2)
 
@@ -158,7 +166,7 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
     # i had to add this condition... why does apara's code not need it?
     if (j != ncol(sigma)) {
       B <- compute_B(data,
-                     {{ value }},
+                     value,
                      i,
                      j,
                      policy_means,
@@ -180,7 +188,7 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
       sethash(seen_sigmas, sigma_1, 1)
 
       Q <- compute_loss(data,
-                        {{ value }},
+                        value,
                         policy_means,
                         sigma_1,
                         policies,
@@ -201,7 +209,7 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
       sethash(seen_sigmas, sigma_0, 1)
 
       Q <- compute_loss(data,
-                        {{ value }},
+                        value,
                         policy_means,
                         sigma_0,
                         policies,
@@ -239,8 +247,8 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
 #' @title Finds the RashomonSet of models for a given dataset.
 #'
 #' @param data A dataframe containing the column whose name you supply in value
-#' @param ... The names of the columns where the levels for each arm can be found.
 #' @param value The column name of the y values in data
+#' @param arm_cols A character vector containing the names of the arm columns
 #' @param M The number of arms
 #' @param R An integer (or vector) denoting the number of levels in each arm. If
 #' this value is an integer, it assumes each arm has the same number of levels.
@@ -256,19 +264,20 @@ find_rashomon_profile <- function(data, value, M, R, H, reg = 1,
 #'
 #' @export
 aggregate_rashomon_profiles <- function(data,
-                                        ...,
+                                        value,
+                                        arm_cols,
                                         M,
                                         R,
                                         H,
                                         reg = 1,
-                                        value,
                                         theta,
                                         bruteforce = FALSE,
                                         inactive = 0) {
 
+
   if(is.null(data$universal_label)){
     warning("No universal label assigned; please run your data through assign_universal_label() to use pool_dictionaries in output")
-    data <- assign_universal_label(data,...)
+    data <- assign_universal_label(data, arm_cols)
   }
 
   num_profiles <- 2^M
@@ -279,8 +288,8 @@ aggregate_rashomon_profiles <- function(data,
     R <- rep(R, M)
   }
 
-  data_labeled <- assign_policy_label(data, ...)
-  policy_list <- create_policies_from_data(data_labeled, ...)
+  data_labeled <- assign_policy_label(data, arm_cols)
+  policy_list <- create_policies_from_data(data_labeled, arm_cols)
   num_data <- nrow(data_labeled)
   data_labeled$id <- 1:num_data
 
@@ -315,9 +324,9 @@ aggregate_rashomon_profiles <- function(data,
     else {
       if(i == 1){
         control_univ_id = data_i$universal_label[1]
-        control_mean = mean(pull(data,{{value}}), na.rm = TRUE)
+        control_mean = mean(pull(data,value), na.rm = TRUE)
       }
-      eq_lb_profiles[i] <- find_profile_lower_bound(data_i, {{ value }})
+      eq_lb_profiles[i] <- find_profile_lower_bound(data_i, value)
     }
   }
 
@@ -357,14 +366,14 @@ aggregate_rashomon_profiles <- function(data,
     # lower_bound = compute_mse_loss(data,{{value}},)
     theta_k <- theta - (eq_lb_sum - eq_lb_profiles[i])
 
-    data_i <- assign_policy_label(data_i, ...)
-    policy_list_i <- create_policies_from_data(data_i, ...)
+    data_i <- assign_policy_label(data_i, arm_cols)
+    policy_list_i <- create_policies_from_data(data_i, arm_cols)
     policy_list_i_masked <- lapply(policy_list_i, function(x) x[as.logical(profile_i)])
-    means_i <- policy_means(data_i, {{ value }})
+    means_i <- policy_means(data_i, value)
 
 
     rashomon_i <- find_rashomon_profile(data_i,
-      value = {{ value }},
+      value = value,
       M = M_i,
       R = R_i,
       H = H_profile,
@@ -393,5 +402,5 @@ aggregate_rashomon_profiles <- function(data,
   R_set <- find_feasible_combinations(rashomon_profiles, theta, H, sorted = TRUE)
 
   rset = list(R_set, rashomon_profiles)
-  make_rashomon_objects(rset)
+  rset
 }

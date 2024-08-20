@@ -17,11 +17,11 @@ compute_mse_loss(
 )
 }
 \arguments{
-\item{data}{Dataframe containing the treatment assignments}
+\item{data}{Data.table containing the treatment assignments}
 
 \item{value}{Label of column containing value observed for each individual}
 
-\item{M}{Dataframe of policy means}
+\item{M}{Data.table of policy means}
 
 \item{sigma}{Partition matrix that gives pooling structure}
 

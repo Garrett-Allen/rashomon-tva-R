@@ -4,12 +4,12 @@
 \alias{assign_policy_label}
 \title{Assign policy labels to data}
 \usage{
-assign_policy_label(data, ...)
+assign_policy_label(data, arm_cols)
 }
 \arguments{
 \item{data}{Dataframe containing the treatment assignments}
 
-\item{...}{Column names where the different arm labels are located.}
+\item{arm_cols}{A character vector containing the names of the arm columns}
 }
 \description{
 Assigns policy labels to data for use in create_policies_from_data. It will

@@ -6,12 +6,12 @@
 \usage{
 aggregate_rashomon_profiles(
   data,
-  ...,
+  value,
+  arm_cols,
   M,
   R,
   H,
   reg = 1,
-  value,
   theta,
   bruteforce = FALSE,
   inactive = 0
@@ -20,7 +20,9 @@ aggregate_rashomon_profiles(
 \arguments{
 \item{data}{A dataframe containing the column whose name you supply in value}
 
-\item{...}{The names of the columns where the levels for each arm can be found.}
+\item{value}{The column name of the y values in data}
+
+\item{arm_cols}{A character vector containing the names of the arm columns}
 
 \item{M}{The number of arms}
 
@@ -31,8 +33,6 @@ this value is an integer, it assumes each arm has the same number of levels.}
 
 \item{reg}{The value of the regularization penalty when computing the loss for
 a pooling structure. Defaults to 1, so that each additional pool in a model adds 1 to the loss.}
-
-\item{value}{The column name of the y values in data}
 
 \item{theta}{Threshold value to be present in the RashomonSet. Set to Inf if you want all poolings.}
 

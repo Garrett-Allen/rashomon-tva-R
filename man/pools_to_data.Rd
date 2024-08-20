@@ -7,7 +7,7 @@
 pools_to_data(data, pools_dict)
 }
 \arguments{
-\item{data}{Dataframe containing the treatment assignments}
+\item{data}{Data.table containing the treatment assignments}
 
 \item{pools_dict}{A collections::dict object from extract_pools() that
 takes in a policy id and outputs the pool it is in.}

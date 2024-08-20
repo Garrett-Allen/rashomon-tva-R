@@ -7,6 +7,7 @@
 find_rashomon_profile(
   data,
   value,
+  arm_cols = c(),
   M,
   R,
   H,
@@ -24,6 +25,8 @@ find_rashomon_profile(
 \item{data}{A dataframe containing the column whose name you supply in value.}
 
 \item{value}{The column name of the y values in data}
+
+\item{arm_cols}{A character vector containing the names of the arm columns}
 
 \item{M}{The number of arms}
 

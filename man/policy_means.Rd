@@ -9,12 +9,12 @@ change if necessary for speedups.}
 policy_means(data, value)
 }
 \arguments{
-\item{data}{Dataframe containing the treatment assignments}
+\item{data}{Data.table containing the treatment assignments}
 
-\item{value}{Name of value column observed for each observation, supplied by the user.}
+\item{value}{Name of value column observed for each observation, supplied by the user. Must be character.}
 }
 \value{
-A dataframe of policy means, where each row is the mean for a given policy.
+A Data.table of policy means, where each row is the mean for a given policy.
 }
 \description{
 Finds policy labels given data with each observation labeled with its policy

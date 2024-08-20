@@ -23,50 +23,61 @@ create_policies <- function(levels, arms = 0) {
 #' assign a unique id to each unique treatment combination present in data.
 #'
 #' @param data Dataframe containing the treatment assignments
-#' @param ... Column names where the different arm labels are located.
+#' @param arm_cols A character vector containing the names of the arm columns
 #' @import dplyr
 #' @import magrittr
 #' @export
-assign_policy_label <- function(data, ...) {
-  data %>%
-    group_by(...) %>%
-    mutate(policy_label = cur_group_id()) %>%
-    ungroup()
+assign_policy_label <- function(data, arm_cols) {
+
+  # Ensure group_cols is a character vector
+  if (!is.character(arm_cols)) {
+    stop("group_cols must be a character vector of column names.")
+  }
+
+  # Create the policy_label column based on group IDs
+  data[, policy_label := .GRP, by = arm_cols]
+
+  return(data)
 }
 
-#' @title Assign policy labels to data
+#' @title Assign universal policy labels to data
 #' @description Assigns policy labels to data for use in create_policies_from_data. It will
 #' assign a unique id to each unique treatment combination present in data.
 #'
 #' @param data Dataframe containing the treatment assignments
-#' @param ... Column names where the different arm labels are located.
+#' @param arm_cols A character vector containing the names of the arm columns
 #' @import dplyr
 #' @import magrittr
 #' @export
-assign_universal_label <- function(data, ...) {
-  data %>%
-    group_by(...) %>%
-    mutate(universal_label = cur_group_id()) %>%
-    ungroup()
+assign_universal_label <- function(data, arm_cols) {
+
+  setDT(data)
+  # Ensure group_cols is a character vector
+  if (!is.character(arm_cols)) {
+    stop("group_cols must be a character vector of column names.")
+  }
+
+  # Create the policy_label column based on group IDs
+  data[, universal_label := .GRP, by = arm_cols]
+
+  return(data)
 }
+
 #' @title Generate list of policies present in data
 #' Creates all factor combinations in a factorial design from the data, for
 #' use downstream in functions that require policy_list as a parameter.
-#' @param data Dataframe containing the  treatment assignments
-#' @param ... Column names where the different arm labels are located.
+#' @param data Data.table containing the  treatment assignments
+#' @param arm_cols A character vector containing the names of the arm columns
 #' @import dplyr
 #' @import magrittr
 #' @export
-create_policies_from_data <- function(data, ...) {
-  mat <- data %>%
-    dplyr::select(...) %>%
-    group_by(...) %>%
-    mutate(policy_label = cur_group_id()) %>%
-    unique() %>%
-    arrange(policy_label) %>%
-    select(-policy_label) %>%
-    as.matrix()
-  asplit(mat, 1)
+create_policies_from_data <- function(data, arm_cols) {
+  dt <- as.data.table(data)
+  dt <- dt[, .(policy_label = .GRP), by = arm_cols]
+  dt <- unique(dt)
+  dt <- dt[order(policy_label)]
+  mat <- dt[, !"policy_label", with = FALSE]
+  asplit(as.matrix(mat), 1)
 }
 
 #'

@@ -26,17 +26,20 @@ subset_prof <- function(data, policy_list, profile, inactive = 0) {
 #' @description Finds lower bound for a given profile
 #' @param data Data prefiltered to be from a given profile
 #' @param value The column name of the y values in data
-#'
-#'
 #' @returns Bound on how low a model's loss can be in a given profile.
 #' @noRd
 find_profile_lower_bound <- function(data, value) {
-  n_k <- nrow(data)
-  data_mean <- data %>%
-    group_by(policy_label) %>%
-    mutate(mean = mean({{ value }}))
 
-  (yardstick::rmse_vec(pull(data_mean, {{ value }}), data_mean$mean))^2 * n_k
+  # Calculate the number of rows
+  n_k <- nrow(data)
+
+  # Calculate the mean by policy_label and add it as a new column
+  data[, mean := mean(get(value), na.rm = TRUE), by = policy_label]
+
+  # Calculate the RMSE, then square it and multiply by n_k
+  rmse_squared_nk <- (yardstick::rmse_vec(data[[value]], data$mean))^2 * n_k
+
+  rmse_squared_nk
 }
 
 #' @description Finds combinations of models such that the sum of their losses is less than

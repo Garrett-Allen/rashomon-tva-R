@@ -19,7 +19,7 @@ compute_B(
 )
 }
 \arguments{
-\item{data}{User supplied dataframe that contains values}
+\item{data}{User supplied Data.table that contains values}
 
 \item{value}{Label of column containing value observed for each individual}
 
@@ -27,7 +27,7 @@ compute_B(
 
 \item{j}{Column to split from in sigma}
 
-\item{M}{Dataframe of policy means}
+\item{M}{Data.table of policy means}
 
 \item{sigma}{Partition matrix that gives pooling structure}
 

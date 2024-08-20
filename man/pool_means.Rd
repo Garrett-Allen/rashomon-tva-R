@@ -4,14 +4,12 @@
 \alias{pool_means}
 \title{Finds pool means given data, value, and pool label}
 \usage{
-pool_means(data, value, pool)
+pool_means(data, value)
 }
 \arguments{
-\item{data}{Dataframe containing the treatment assignments}
+\item{data}{Data.table containing the treatment assignments}
 
-\item{value}{Name of value column observed for each observation, supplied by the user.}
-
-\item{pool}{Name of pool column}
+\item{value}{Name of value column observed for each observation, supplied by the user. Must be character.}
 }
 \value{
 A collections::dict() object, where the key is an integer i corresponding
