@@ -70,7 +70,7 @@ data %>%
 
 # add collections::dict()- think carefully about how I want this to work
 # add predict function
-otherwise done!
+# otherwise done!
 ```
 
 ```{r}
@@ -151,7 +151,7 @@ rset <- aggregate_rashomon_profiles(data,
 M <- 3
 R <- c(4, 3, 3)
 H <- Inf
-theta <- 26
+theta <- 50
 lamb <- 1
 
 data <- read.csv("output.csv") %>%
@@ -170,6 +170,26 @@ data <- assign_policy_label(data, group_cols)
 
 begin <- Sys.time()
 
+rset <- aggregate_rashomon_profiles(data, 
+                                    arm_cols = c("arm1","arm2","arm3"),
+  M = M,
+  H = H,
+  R = R,
+  reg = lamb,
+  value = "observation",
+  theta = theta
+)
+pryr::object_size(data)
+
+pryr::object_size(as.data.frame(data))
+
+pryr::object_size(as.matrix(data))
+end <- Sys.time()
+print(end - begin)
+
+```
+
+```{r}
 library(profvis)
 profvis({
 rset <- aggregate_rashomon_profiles(data, 
@@ -182,9 +202,6 @@ rset <- aggregate_rashomon_profiles(data,
   theta = theta
 )
 })
-
-print(end - begin)
-
 ```
 
 ```{r}
@@ -201,7 +218,7 @@ data <- read.csv("output.csv") %>%
 M <- 3
 R <- c(4, 3, 3)
 H <- Inf
-theta <- 26
+theta <- 50
 lamb <- 1
 
 

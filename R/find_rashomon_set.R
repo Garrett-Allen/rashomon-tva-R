@@ -200,7 +200,7 @@ find_rashomon_profile <- function(data,
       )
 
       if (Q[[1]] <= theta) {
-        n_pools <- num_pools(sigma_1, R)
+        n_pools <- Q[[3]]
         rashomon_set = insert_model(rashomon_set, list(sigma_1), Q[[1]], n_pools, list(profile), Q[[2]])
       }
     }
@@ -221,7 +221,7 @@ find_rashomon_profile <- function(data,
       )
 
       if (Q[[1]] <= theta) {
-        n_pools <- num_pools(sigma_0, R)
+        n_pools <- Q[[3]]
         rashomon_set = insert_model(rashomon_set, list(sigma_0), Q[[1]], n_pools, list(profile), Q[[2]])
       }
     }
@@ -389,7 +389,7 @@ aggregate_rashomon_profiles <- function(data,
 
     if(is.null(rashomon_i)){
       cat(paste0("No models in the RashomonSet for profile: ", profile_i, "\n"))
-      next
+      return(list())
     }
     rashomon_i = sort_rashomon(rashomon_i)
     rashomon_profiles[i] <- list(rashomon_i)

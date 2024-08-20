@@ -244,5 +244,5 @@ compute_loss <- function(data, value, M, sigma, policy_list, reg = 1, normalize 
 
   loss = mse[[1]] + reg_loss
 
-  return(list(loss = loss, dict = mse[[2]]))
+  return(list(loss = loss, dict = mse[[2]], num_pools = reg_loss / reg))
 }

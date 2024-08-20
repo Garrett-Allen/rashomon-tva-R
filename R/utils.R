@@ -64,34 +64,30 @@ find_feasible_combinations <- function(rashomon_profiles, theta, H, sorted = FAL
       rset[i] = sort_rashomon(rset[i])
     }
   }
-
+  feasible_combinations <- list()
   # coalescing all losses into one list of lists.
   all_losses <- lapply(rashomon_profiles, function(x) x$losses)
 
   loss_combinations <- find_feasible_sum_subsets(all_losses, theta)
 
-  feasible_combinations <- list()
+  num_combn <- length(loss_combinations)
+
+  length(feasible_combinations) = num_combn
 
   # filtering so that we only have combinations with number of pools smaller
   # than H
-  for (i in 1:length(loss_combinations)) {
+
+  for (i in 1:num_combn) {
     pools <- 0
     comb <- loss_combinations[[i]]
     for (j in 1:length(comb)) {
       r_prof <- rashomon_profiles[[j]]
       model_id <- comb[[j]]
-
-      if (all(is.na(r_prof$models[[model_id]]))) {
-        if (r_prof$losses[[model_id]] > 0) {
-          pools <- pools + 1
-        }
-      } else {
-        pools <- pools + r_prof$num_pools[[model_id]]
-      }
+      pools <- pools + r_prof$num_pools[[model_id]]
     }
 
     if (pools <= H) {
-      feasible_combinations <- append(feasible_combinations, list(comb))
+      feasible_combinations[i] = list(comb)
     }
   }
 
