@@ -2,7 +2,10 @@
 #' @export
 make_rashomon_objects <- function(rset) {
   rash_models <- list()
+  length(rash_models) <- length(rset[[1]])
+  count <- 0
   for (x in rset[[1]]) {
+    count <- count + 1
     rashomon_i <- new_RashomonSet(
       models = list(),
       losses = numeric(),
@@ -20,9 +23,7 @@ make_rashomon_objects <- function(rset) {
       rashomon_i = insert_model(rashomon_i, list(model_i), loss_i, pools_i, list(profiles_i), pool_dictionary_i)
     }
 
-    rash_models <- append(rash_models, list(rashomon_i))
+    rash_models[[count]] = rashomon_i
   }
   rash_models
 }
-
-

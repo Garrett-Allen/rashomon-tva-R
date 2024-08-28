@@ -93,7 +93,7 @@ partition_sigma <- function(i, j, sigma) {
 #' id of a policy and the value is the pool id.
 #' @export
 extract_pools <- function(policy_list, sigma, lattice_edges = NA) {
-  if (any(is.na(lattice_edges))) {
+  if (!is.list(lattice_edges)) {
     lattice_relations <- lattice_edges(sigma, policy_list)
   } else {
     lattice_relations <- prune_edges(sigma, lattice_edges, policy_list)

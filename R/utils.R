@@ -83,7 +83,7 @@ find_feasible_combinations <- function(rashomon_profiles, theta, H, sorted = FAL
     for (j in 1:length(comb)) {
       r_prof <- rashomon_profiles[[j]]
       model_id <- comb[[j]]
-      pools <- pools + r_prof$num_pools[[model_id]]
+      pools <- pools + r_prof[[3]][[model_id]]
     }
 
     if (pools <= H) {

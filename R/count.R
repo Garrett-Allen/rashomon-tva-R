@@ -91,7 +91,7 @@ num_pools_change_r <- function(sigma, R) {
   # due to R quirks, I split this up into subsets of size {1,..., n-1} and
   # subset of size n, but its just the same code repeated.
 
-  for (k in 2:length(z_combs)) {
+  for (k in 1:length(z_combs)) {
     subsets_k <- z_combs[[k]]
 
     if (!is.null(nrow(subsets_k))) {
@@ -125,9 +125,8 @@ num_pools_change_r <- function(sigma, R) {
 #' the subsets of size k, such that list[[k]][,i] is the ith subset of size k.
 #' @noRd
 powerset <- function(arr) {
-  s <- as.list(arr)
-  subsets <- lapply(0:length(s), function(r) {
-    combinat::combn(s, r, simplify = TRUE)
+  subsets <- lapply(1:length(arr), function(r) {
+    t(RcppAlgos::comboGeneral(arr, r))
   })
   subsets
 }
