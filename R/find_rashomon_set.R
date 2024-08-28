@@ -316,7 +316,11 @@ aggregate_rashomon_profiles <- function(data,
     D_profile[i] <- list(data_i$id)
 
     # if no policies correspond to that profile
-    if (length(data_i) == 0) {
+    if(nrow(data_i) == 0) {
+      if(i == 1){
+        control_univ_id = data_i$universal_label[1]
+        control_mean = NA
+      }
       eq_lb_profiles[i] <- 0
       H_profile <- H_profile + 1
     }
@@ -333,6 +337,7 @@ aggregate_rashomon_profiles <- function(data,
   eq_lb_profiles <- eq_lb_profiles / num_data
   eq_lb_sum <- sum(eq_lb_profiles)
 
+
   # deal with control separately
   control_loss <- eq_lb_profiles[[1]] + reg
   control_dict = collections::dict(keys = as.integer(control_univ_id), items = control_mean)
@@ -348,7 +353,7 @@ aggregate_rashomon_profiles <- function(data,
     # extracting relevant things to find rashomon set for this profile
     data_i <- data_labeled[unlist(D_profile[i]), ]
 
-    if (nrow(data_i) == 0) {
+    if(nrow(data_i) == 0) {
       rashomon_profiles[i] <- list(new_RashomonSet(
         models = list(NA),
         losses = 0,
@@ -374,6 +379,7 @@ aggregate_rashomon_profiles <- function(data,
 
     rashomon_i <- find_rashomon_profile(data_i,
       value = value,
+      arm_cols = arm_cols,
       M = M_i,
       R = R_i,
       H = H_profile,
@@ -383,8 +389,8 @@ aggregate_rashomon_profiles <- function(data,
       policy_means = means_i,
       normalize = num_data,
       theta = theta_k,
-      inactive = 0,
-      filtered = TRUE
+      filtered = TRUE,
+      inactive = 0
     )
 
     if(is.null(rashomon_i)){
