@@ -288,7 +288,7 @@ rset <- aggregate_rashomon_profiles(data,
   value = "observation",
   theta = theta
 )
-
+rset[[2]]
 
 ```
 
@@ -308,6 +308,10 @@ data <- assign_universal_label(data, group_cols)
 #ways to speedup
 #convert base function to Rcpp
 #for num_pools
+
+
+policy_list = create_policies_from_data(data, group_cols)
+policies = c(1,1,1,1)
 
 rset <- aggregate_rashomon_profiles(data, 
                                     arm_cols = group_cols,

@@ -320,17 +320,19 @@ aggregate_rashomon_profiles <- function(data,
       if(i == 1){
         control_univ_id = data_i$universal_label[1]
         control_mean = NA
+        control_loss = 0
       }
       eq_lb_profiles[i] <- 0
       H_profile <- H_profile + 1
     }
 
     else {
+      eq_lb_profiles[i] <- find_profile_lower_bound(data_i, value)
       if(i == 1){
         control_univ_id = data_i$universal_label[1]
         control_mean = mean(pull(data,value), na.rm = TRUE)
+        control_loss <- eq_lb_profiles[[1]] + reg
       }
-      eq_lb_profiles[i] <- find_profile_lower_bound(data_i, value)
     }
   }
 
@@ -339,7 +341,6 @@ aggregate_rashomon_profiles <- function(data,
 
 
   # deal with control separately
-  control_loss <- eq_lb_profiles[[1]] + reg
   control_dict = collections::dict(keys = as.integer(control_univ_id), items = control_mean)
   rashomon_profiles[1] <- list(new_RashomonSet(
     models = list(NA),
