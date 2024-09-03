@@ -331,7 +331,6 @@ aggregate_rashomon_profiles <- function(data,
       if(i == 1){
         control_univ_id = data_i$universal_label[1]
         control_mean = mean(pull(data,value), na.rm = TRUE)
-        control_loss <- eq_lb_profiles[[1]] + reg
       }
     }
   }
@@ -339,6 +338,7 @@ aggregate_rashomon_profiles <- function(data,
   eq_lb_profiles <- eq_lb_profiles / num_data
   eq_lb_sum <- sum(eq_lb_profiles)
 
+  control_loss <- eq_lb_profiles[[1]] + reg
 
   # deal with control separately
   control_dict = collections::dict(keys = as.integer(control_univ_id), items = control_mean)

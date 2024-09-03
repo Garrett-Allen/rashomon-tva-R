@@ -79,21 +79,44 @@ combine_pool_dictionaries <- function(obj){
   collections::dict(items = unname(total_dict), keys = names(total_dict))
 }
 
-#' Gernerates predictions from a model in the RashomonSet
-#' @param obj A RashomonSet object
-#' @param newdata A dataframe. Must contain column universal_labels from output of assign_universal_labels(), and these labels
-#' must correspond to the same policies as in the data passed to aggregate_rashomon_profiles()
-#' or find_rashomon_profile()
+
+#' @title Make predictions from a model in the RashomonSet
+#' @description Allows you to get predictions from a model in the RashomonSet.
+#' @param universal_labels A vector of universal_labels that you want to
+#' extract predictions for. This vector gives the unique policy id for each
+#' new observation you want to predict for, as assignd by assign_universal_labels().
+#' Make sure that the assigned labels are the same as those present in the data
+#' when aggregate_rashomon_profiles() is called.
+#' @param rashomon_set A RashomonSet object that is either a model in the RashomonSet or holds models in the RashomonSet for a particular profile.
+#' This will be changed in a future update to be more consistent.
+#' @param model_id Which model in the RashomonSet you want a prediction from. Defaults to 1.
 #' @export
-predict.RashomonSet <- function(obj, data){
+predict.RashomonSet <- function(rashomon_set, universal_labels, model_id = 1){
 
-  total_dict <- combine_pool_dictionaries(obj)
+  pool_dict <- rashomon_set$pool_dictionaries[[model_id]]
+  num_preds <- length(universal_labels)
+  predictions <- numeric(num_preds)
 
-  pred <- c()
-  for(i in 1:nrow(data)){
-    pred[i] <- total_dict$get(as.character(data$universal_label[i]))
+  if(is.numeric(pool_dict$keys()[[1]])){
+
+    for(i in 1:num_preds){
+
+      predictions[i] <- pool_dict$get(as.integer(universal_labels[i]))
+    }
+
   }
-  data$predictions <- pred
-  data
+
+  else{
+
+    universal_labels <- as.character(universal_labels)
+
+    for(i in 1:num_preds){
+
+      predictions[i] <- pool_dict$get(as.integer(universal_labels[i]))
+    }
+  }
+
+
+  predictions
 }
 

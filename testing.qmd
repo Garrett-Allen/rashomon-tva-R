@@ -208,6 +208,8 @@ x <- make_rashomon_objects(rset)
 end <- Sys.time()
 print(end - begin)
 
+#Extract all model losses
+
 get_all_losses <- function(rset){
   
   num_models <- length(rset[[1]])
@@ -256,6 +258,8 @@ rset <- aggregate_rashomon_profiles(data,
 })
 ```
 
+
+# How to get predictions from RashomonSet when multiple profiles are present in data
 ```{r}
 data <- read.csv("output.csv") %>%
   rename(
@@ -275,7 +279,7 @@ data <- assign_universal_label(data, group_cols)
 M <- 3
 R <- c(4, 3, 3)
 H <- Inf
-theta <- 50
+theta <- 13
 lamb <- 1
 
 
@@ -288,38 +292,69 @@ rset <- aggregate_rashomon_profiles(data,
   value = "observation",
   theta = theta
 )
-rset[[2]]
+
+
+objs <- make_rashomon_objects(rset)
+
+predictions <- predict(objs[[1]], data$universal_label, model_id = 1)
 
 ```
 
+
+# How to get predictions from Rashomon Set for one profile
 ```{r}
+
 data <- read.csv("data.csv")
 
+# Setting parameters
 M <- 4
 R <- c(5, 5, 5,5)
 H <- Inf
-theta <- .025
+theta <- 3
 lamb <- 1
 
-group_cols = c("X1","X2","X3","X4")
-data <- assign_universal_label(data, group_cols)
+#Setting names of things and profiles
+arm_cols <- c("X1","X2","X3","X4")
+value <- "Y"
+profile <- c(1,1,1,1)
+
+#Readying data, computing means and policies
+data <- assign_universal_label(data, arm_cols)
+data <- assign_policy_label(data, arm_cols)
+policies <- rashomontva::create_policies_from_data(data, arm_cols)
+policy_means <- rashomontva::policy_means(data, value)
 
 
-#ways to speedup
-#convert base function to Rcpp
-#for num_pools
+#computing RashomonSet for profile where everything is active (entire data in this case)
+rashomon_profile <- find_rashomon_profile(data,
+                      value,
+                      arm_cols,
+                      M,
+                      R,
+                      H,
+                      reg = lamb, 
+                      profile,
+                      policies,
+                      policy_means,
+                      normalize = 0, 
+                      theta,
+                      filtered = TRUE,
+                      inactive = 0 )
+
+#if you care about it being sorted so that lowest loss model is first
+
+rashomon_profile <- sort_rashomon(rashomon_profile)
+
+#get predictions for fifth model in RashomonSet for profile (1,1,1,1)
+
+model_id <- 5
+labels <- data$universal_label
+
+predictions <- predict(rashomon_profile, labels, model_id)
+
+#to get all predictions, just loop through all models (1:length(rashomon_profile$models))
 
 
-policy_list = create_policies_from_data(data, group_cols)
-policies = c(1,1,1,1)
 
-rset <- aggregate_rashomon_profiles(data, 
-                                    arm_cols = group_cols,
-  M = M,
-  H = H,
-  R = R,
-  reg = lamb,
-  value = "Y",
-  theta = theta
-)
 ```
+

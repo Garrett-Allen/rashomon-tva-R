@@ -1,0 +1,112 @@
+---
+title: "rashomon_package"
+author: "garrett-allen"
+format: html
+editor: visual
+---
+
+```{r}
+library(rashomontva)
+library(tidyverse)
+library(collections)
+library(data.table)
+```
+
+#todo add examples
+
+```{r}
+
+data <- assign_policy_label(data,arm1,arm2)
+policy_list <- rashomontva::create_policies_from_data(data, arm1, arm2)
+sigma <- matrix(c(1,1,1,1), ncol = 2, nrow = 2)
+
+edge_list <- lattice_edges(sigma, policy_list)
+
+new_sigma <- matrix(c(1,1,1,NA), ncol = 2, nrow = 2)
+pruned_edge_list <- prune_edges(new_sigma,edge_list,policy_list)
+
+cc <- connected_components(length(pruned_edge_list),pruned_edge_list,policy_list)
+
+edge_list
+
+str(cc$get(as.integer(1)))
+# use as.integer
+
+
+```
+
+```{r}
+data <- data.frame(arm1 = c(1,1,1,1,1,1,1,1,1,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3),
+                   arm2 = c(1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3,1,2,3),
+                   value = runif(27))
+
+#searching rashomon set
+data <- assign_policy_label(data,arm1,arm2)
+
+
+# need to ask 
+num_pools_change_r <- function(sigma, R){
+  m = nrow(sigma)
+  
+  # why do this?
+  R = R - 1
+  R_prod = prod(R)
+
+  z = rowSums(sigma, na.rm = TRUE)
+  indices = 1:m
+  z_combs = powerset(indices)
+  
+  H = 0 
+  for(i in 2:length(z_combs)){
+    
+    all_combs_i = z_combs[[i]]
+    
+    # change for end case
+    if(is.null(nrow(all_combs_i))){
+      all_combs_i = list()
+    }
+    for(k in 1:length(all_combs_i)){
+      
+  
+      sign = (-1)^(length(comb))
+      
+
+      z_sum = prod(z[comb])
+      print("zsum")
+      print(z_sum)
+      splits = R_prod / prod(R[comb])
+      print("splits")
+      print(splits)
+      H = H + sign * z_sum * splits
+    
+    }
+    
+  }
+  H + 1
+
+}
+
+powerset(1:5)
+num_pools(new_sigma, R = 4)
+num_pools_change_r(new_sigma, R = c(4,3))
+initialize_sigma <- function(R, arms = 0){
+  
+  if(length(R) == 1){
+    return(matrix(1, nrow = arms, R-2))
+  }
+  
+  sigma = matrix(nrow = arms, ncol = max(R) - 2)
+  
+  for(i in 1:length(R)){
+    for(j in 1:(max(R[i]) - 2)){
+      sigma[i,j] = 1
+    }
+  }
+  sigma
+}
+
+
+find_rashomon_set <- function(threshold, sigma){
+  
+}
+```

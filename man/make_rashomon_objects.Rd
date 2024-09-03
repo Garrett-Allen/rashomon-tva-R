@@ -2,10 +2,15 @@
 % Please edit documentation in R/predictions.R
 \name{make_rashomon_objects}
 \alias{make_rashomon_objects}
-\title{Makes output from aggregate_rashomon_partitions cleaner}
+\title{Make output from aggregate_rashomon_profiles into a list of models in RashomonSet}
 \usage{
 make_rashomon_objects(rset)
 }
+\arguments{
+\item{rset}{A list object from the output of aggregate_rashomon_profiles()}
+}
 \description{
-Makes output from aggregate_rashomon_partitions cleaner
+Makes output from aggregate_rashomon_profiles usable in predict function,
+by making each object in the list a model in the RashomonSet, with each possessing dictionary
+that maps universal_labels from assign_universal_labels() to pool means.
 }

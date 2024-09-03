@@ -123,6 +123,7 @@ num_pools_change_r <- function(sigma, R) {
 #' @param arr A list
 #' @returns A list of lists, where element list[[k]] is a matrix of all of
 #' the subsets of size k, such that list[[k]][,i] is the ith subset of size k.
+#' @importFrom RcppAlgos comboGeneral
 #' @noRd
 powerset <- function(arr) {
   subsets <- lapply(1:length(arr), function(r) {
