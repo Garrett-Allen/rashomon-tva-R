@@ -324,6 +324,17 @@ data <- assign_policy_label(data, arm_cols)
 policies <- rashomontva::create_policies_from_data(data, arm_cols)
 policy_means <- rashomontva::policy_means(data, value)
 
+rset <- aggregate_rashomon_profiles(data, 
+                                    arm_cols = arm_cols,
+  M = M,
+  H = H,
+  R = R,
+  reg = lamb,
+  value = "Y",
+  theta = theta
+)
+
+x <- make_rashomon_objects(rset)
 
 #computing RashomonSet for profile where everything is active (entire data in this case)
 rashomon_profile <- find_rashomon_profile(data,

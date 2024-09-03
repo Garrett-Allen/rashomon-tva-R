@@ -360,7 +360,7 @@ aggregate_rashomon_profiles <- function(data,
         losses = 0,
         num_pools = list(0),
         profiles = list(as.numeric(profiles[1, ])),
-        pool_dictionaries = list(0)
+        pool_dictionaries = collections::dict(items = NA, keys = as.integer(-i))
       ))
       next
     }

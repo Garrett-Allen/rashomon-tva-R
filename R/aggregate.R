@@ -26,6 +26,7 @@ create_policies <- function(levels, arms = 0) {
 #' @param arm_cols A character vector containing the names of the arm columns
 #' @import dplyr
 #' @import magrittr
+#' @import data.table
 #' @export
 assign_policy_label <- function(data, arm_cols) {
 
@@ -48,6 +49,7 @@ assign_policy_label <- function(data, arm_cols) {
 #' @param arm_cols A character vector containing the names of the arm columns
 #' @import dplyr
 #' @import magrittr
+#' @import data.table
 #' @export
 assign_universal_label <- function(data, arm_cols) {
 
@@ -70,6 +72,7 @@ assign_universal_label <- function(data, arm_cols) {
 #' @param arm_cols A character vector containing the names of the arm columns
 #' @import dplyr
 #' @import magrittr
+#' @import data.table
 #' @export
 create_policies_from_data <- function(data, arm_cols) {
   dt <- as.data.table(data)
