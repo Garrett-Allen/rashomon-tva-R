@@ -336,6 +336,8 @@ rset <- aggregate_rashomon_profiles(data,
 
 x <- make_rashomon_objects(rset)
 
+predicts <- predict(x[[1]], data$universal_label)
+
 #computing RashomonSet for profile where everything is active (entire data in this case)
 rashomon_profile <- find_rashomon_profile(data,
                       value,
@@ -367,5 +369,13 @@ predictions <- predict(rashomon_profile, labels, model_id)
 
 
 
+```
+
+```{r}
+# testing
+
+policies <- rashomontva::create_policies_from_data(data, arm_cols)
+sigma <- initialize_sigma(M, R)
+hasse_edges <- lattice_edges(sigma, policies)
 ```
 

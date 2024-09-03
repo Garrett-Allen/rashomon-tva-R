@@ -305,7 +305,7 @@ aggregate_rashomon_profiles <- function(data,
 
   # Assign profile ids to each data point
   control_univ_id = -1
-
+  control_no_data = FALSE
   for (i in 1:num_profiles) {
     # assign profile labels and extract appropriate subset
     profile_i <- as.numeric(profiles[i, ])
@@ -320,7 +320,7 @@ aggregate_rashomon_profiles <- function(data,
       if(i == 1){
         control_univ_id = data_i$universal_label[1]
         control_mean = NA
-        control_loss = 0
+        control_no_data = TRUE
       }
       eq_lb_profiles[i] <- 0
       H_profile <- H_profile + 1
@@ -338,7 +338,13 @@ aggregate_rashomon_profiles <- function(data,
   eq_lb_profiles <- eq_lb_profiles / num_data
   eq_lb_sum <- sum(eq_lb_profiles)
 
-  control_loss <- eq_lb_profiles[[1]] + reg
+  if(control_no_data) {
+    control_loss = 0
+  }
+  else{
+    control_loss <- eq_lb_profiles[[1]] + reg
+  }
+
 
   # deal with control separately
   control_dict = collections::dict(keys = as.integer(control_univ_id), items = control_mean)
@@ -360,7 +366,7 @@ aggregate_rashomon_profiles <- function(data,
         losses = 0,
         num_pools = list(0),
         profiles = list(as.numeric(profiles[1, ])),
-        pool_dictionaries = collections::dict(items = NA, keys = as.integer(-i))
+        pool_dictionaries = list(collections::dict(items = NA, keys = as.integer(-i)))
       ))
       next
     }

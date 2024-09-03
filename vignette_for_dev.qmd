@@ -110,3 +110,13 @@ find_rashomon_set <- function(threshold, sigma){
   
 }
 ```
+
+
+```{r}
+# testing
+
+
+sigma <- initialize_sigma(M, R)
+hasse_edges <- lattice_edges(sigma, policies)
+
+```

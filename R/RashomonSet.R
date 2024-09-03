@@ -113,7 +113,7 @@ predict.RashomonSet <- function(rashomon_set, universal_labels, model_id = 1){
 
     for(i in 1:num_preds){
 
-      predictions[i] <- pool_dict$get(as.integer(universal_labels[i]))
+      predictions[i] <- pool_dict$get(universal_labels[i])
     }
   }
 
