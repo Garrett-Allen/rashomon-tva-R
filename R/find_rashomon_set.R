@@ -178,6 +178,7 @@ find_rashomon_profile <- function(data,
                      R
       )
 
+
       if (B > theta) {
         next
       }
@@ -328,6 +329,9 @@ aggregate_rashomon_profiles <- function(data,
 
     else {
       eq_lb_profiles[i] <- find_profile_lower_bound(data_i, value)
+      if(is.na(eq_lb_profiles[i]) | is.nan(eq_lb_profiles[i])){
+        eq_lb_profiles[i] = 0
+      }
       if(i == 1){
         control_univ_id = data_i$universal_label[1]
         control_mean = mean(pull(data,value), na.rm = TRUE)
@@ -360,7 +364,7 @@ aggregate_rashomon_profiles <- function(data,
     # extracting relevant things to find rashomon set for this profile
     data_i <- data_labeled[unlist(D_profile[i]), ]
 
-    if(nrow(data_i) == 0) {
+    if(nrow(data_i) == 0 | all(is.na(pull(data_i, value))) | all(is.nan(pull(data_i, value)))) {
       rashomon_profiles[i] <- list(new_RashomonSet(
         models = list(NA),
         losses = 0,

@@ -119,4 +119,8 @@ find_rashomon_set <- function(threshold, sigma){
 sigma <- initialize_sigma(M, R)
 hasse_edges <- lattice_edges(sigma, policies)
 
+bool <- lapply(hasse_edges, function(x) any(x == 170))
+
+which(bool == TRUE)
+
 ```

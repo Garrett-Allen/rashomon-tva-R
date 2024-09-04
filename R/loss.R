@@ -131,6 +131,7 @@ compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normal
   # assigning pools to policy means so that we can compute pool means
   M_pool <- pools_to_data(M, pool_dict)
 
+
   # dictionary of pool means of type cc:dictionary()
   fixed_pool_means_dict <- pool_means(M_pool, "mean")
 
@@ -148,7 +149,7 @@ compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normal
 
   y <- dplyr::pull(data, value)
 
-  mse <- (yardstick::rmse_vec(pool_mean_data, y))^2
+  mse <- (yardstick::rmse_vec(pool_mean_data, y, na_rm = TRUE))^2
 
   if (normalize > 0) {
     mse <- (mse * nrow(data) / normalize)
