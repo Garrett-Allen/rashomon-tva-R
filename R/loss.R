@@ -152,7 +152,8 @@ compute_mse_loss <- function(data, value, M, sigma, policy_list, reg = 1, normal
   mse <- (yardstick::rmse_vec(pool_mean_data, y, na_rm = TRUE))^2
 
   if (normalize > 0) {
-    mse <- (mse * nrow(data) / normalize)
+    n_data_i <- sum(!is.na(y))
+    mse <- (mse * n_data_i / normalize)
   }
 
   if(!return_dict){

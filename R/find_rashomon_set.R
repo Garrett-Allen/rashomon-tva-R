@@ -290,8 +290,7 @@ aggregate_rashomon_profiles <- function(data,
 
   data_labeled <- prep_data(data, arm_cols = arm_cols, value = value, R = R, drop_unobserved_combinations = FALSE)
   policy_list <- create_policies_from_data(data_labeled, arm_cols)
-
-  num_data <- nrow(data_labeled)
+  num_data <- nrow(data)
   data_labeled$id <- 1:num_data
 
   # Maximum number of pools for a profile derived from maximum number of pools
