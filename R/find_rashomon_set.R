@@ -277,8 +277,7 @@ aggregate_rashomon_profiles <- function(data,
 
 
   if(is.null(data$universal_label)){
-    warning("No universal label assigned; please run your data through assign_universal_label() to use pool_dictionaries in output")
-    data <- assign_universal_label(data, arm_cols)
+    warning("No universal label assigned; please run your data through prep_data() to use pool_dictionaries in output")
   }
 
   num_profiles <- 2^M
@@ -289,8 +288,9 @@ aggregate_rashomon_profiles <- function(data,
     R <- rep(R, M)
   }
 
-  data_labeled <- assign_policy_label(data, arm_cols)
+  data_labeled <- prep_data(data, arm_cols = arm_cols, value = value, R = R, drop_unobserved_combinations = FALSE)
   policy_list <- create_policies_from_data(data_labeled, arm_cols)
+
   num_data <- nrow(data_labeled)
   data_labeled$id <- 1:num_data
 
@@ -317,7 +317,7 @@ aggregate_rashomon_profiles <- function(data,
     D_profile[i] <- list(data_i$id)
 
     # if no policies correspond to that profile
-    if(nrow(data_i) == 0) {
+    if(nrow(data_i) == 0 | all(is.na(pull(data_i, value)))) {
       if(i == 1){
         control_univ_id = data_i$universal_label[1]
         control_mean = NA
@@ -383,7 +383,7 @@ aggregate_rashomon_profiles <- function(data,
     theta_k <- theta - (eq_lb_sum - eq_lb_profiles[i])
 
     data_i <- assign_policy_label(data_i, arm_cols)
-    policy_list_i <- create_policies_from_data(data_i, arm_cols)
+    policy_list_i <- create_policies_from_data(data_i, arm_cols) # NEED TO CHANGE
     policy_list_i_masked <- lapply(policy_list_i, function(x) x[as.logical(profile_i)])
     means_i <- policy_means(data_i, value)
 

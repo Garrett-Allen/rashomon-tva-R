@@ -17,7 +17,7 @@ when aggregate_rashomon_profiles() is called.}
 
 \item{model_id}{Which model in the RashomonSet you want a prediction from. Defaults to 1. If you're calling
 this on a RashomonSet from the output of make_rashomon_objs, leave this at the default, as there is one
-pool dictionary per object that holds al of the mappings from unique policy ids to pool means.}
+pool dictionary per object that holds all of the mappings from unique policy ids to pool means.}
 }
 \description{
 Allows you to get predictions from a model in the RashomonSet.

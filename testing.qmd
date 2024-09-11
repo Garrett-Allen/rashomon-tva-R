@@ -269,12 +269,11 @@ data <- read.csv("output.csv") %>%
     id = "X",
     observation = "Y"
   ) %>%
-  select(-D)
-
-
+  select(-D) %>%
+  mutate(observation = if_else(arm1 == 1 & arm2 == 1 & arm3 == 1, NA, observation))
 
 group_cols = c("arm1","arm2","arm3")
-data <- assign_universal_label(data, group_cols)
+
 
 M <- 3
 R <- c(4, 3, 3)
@@ -293,10 +292,15 @@ rset <- aggregate_rashomon_profiles(data,
   theta = theta
 )
 
+data
 
 objs <- make_rashomon_objects(rset)
 
+unnest_wider(as.data.frame(create_policies(5, arms = 4)), 1)
+
 predictions <- predict(objs[[1]], data$universal_label, model_id = 1)
+
+
 
 ```
 
@@ -377,5 +381,111 @@ predictions <- predict(rashomon_profile, labels, model_id)
 policies <- rashomontva::create_policies_from_data(data, arm_cols)
 sigma <- initialize_sigma(M, R)
 hasse_edges <- lattice_edges(sigma, policies)
+
+x <- prep_data(data, arm_cols, R, value = "Y", drop_unobserved_combinations = TRUE)
+
+x <- prep_data(data, group_cols, levels)
+
+```
+
+```{r}
+
+data <- read.csv("data.csv")
+
+# Setting parameters
+M <- 4
+R <- c(5, 5, 5,5)
+H <- Inf
+theta <- 3
+lamb <- 1
+
+#Setting names of things and profiles
+arm_cols <- c("X1","X2","X3","X4")
+value <- "Y"
+profile <- c(1,1,1,1)
+
+x <- prep_data(data, arm_cols, value = "Y", R = R, drop_unobserved_combinations = FALSE)
+
+
+
+create_policies_from_data(data, arm_cols)
+
+
+prepped_data
+```
+
+```{r}
+data <- read.csv("data.csv")
+
+# Setting parameters
+M <- 4
+R <- c(5, 5, 5,5)
+H <- Inf
+theta <- 3
+lamb <- 1
+
+#Setting names of things and profiles
+arm_cols <- c("X1","X2","X3","X4")
+value <- "Y"
+profile <- c(1,1,1,1)
+
+prepped_data <- prep_data(data, arm_cols = arm_cols, value = value, R = R, drop_unobserved_combinations = FALSE)
+
+rset <- aggregate_rashomon_profiles(data, 
+                                    arm_cols = arm_cols,
+  M = M,
+  H = H,
+  R = R,
+  reg = lamb,
+  value = value,
+  theta = theta
+)
+
+robjs <- make_rashomon_objects(rset)
+
+predictions <- predict(robjs[[2]], prepped_data$universal_label)
+
+df <- prepped_data %>% 
+  as.data.frame() %>% 
+  mutate(preds = predictions) %>% 
+  filter(X1 != 0 & X2 != 0 & X3 != 0 & X4 != 0)
+
+df
+
+# LAST THING TO DO: NEED TO MAKE DICTIONARIES OUTPUT FOR FACTOR COMBINATIONS NOT PRESENT IN DATA
+#THEN, MAKE VIGNETTE AND LABELLING FUNCTION (so data isn't changed)
+# I COULD ALSO CHANGE PREDICT FUNCTION
+
+#what we need to do:
+
+# change policy_list_i
+# then, in loss function
+# we have internal policy_label -> pool
+# three stages: 
+# univ_label -> policy_label 
+# policy_label -> pool
+# pool -> pool_mean
+# we want univ_label -> pool_mean
+
+#instead, do:
+#universal_labels -> pools
+#pools -> pool_means
+#universal_labels -> pool_means
+#then proceed as normal
+
+#speed ups; change lists EVERYWHERE to be dictionaries?
+
+create_labels_to_means <- function(label_to_pool_dict, pool_to_mean_dict){
+  
+  labels <- label_to_pool_dict$keys()
+  num_policies <- length(labels)
+  means <- numeric(length(labels))
+  
+  for(i in 1:num_policies){
+    
+    
+  }
+}
+
 ```
 

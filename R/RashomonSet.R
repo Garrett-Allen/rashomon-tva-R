@@ -90,7 +90,7 @@ combine_pool_dictionaries <- function(obj){
 #' @param rashomon_set A RashomonSet object.
 #' @param model_id Which model in the RashomonSet you want a prediction from. Defaults to 1. If you're calling
 #' this on a RashomonSet from the output of make_rashomon_objs, leave this at the default, as there is one
-#' pool dictionary per object that holds al of the mappings from unique policy ids to pool means.
+#' pool dictionary per object that holds all of the mappings from unique policy ids to pool means.
 #' @export
 predict.RashomonSet <- function(rashomon_set, universal_labels, model_id = 1){
 
@@ -102,7 +102,7 @@ predict.RashomonSet <- function(rashomon_set, universal_labels, model_id = 1){
 
     for(i in 1:num_preds){
 
-      predictions[i] <- pool_dict$get(as.integer(universal_labels[i]))
+      predictions[i] <- pool_dict$get(as.integer(universal_labels[i]),NA)
     }
 
   }
@@ -113,7 +113,7 @@ predict.RashomonSet <- function(rashomon_set, universal_labels, model_id = 1){
 
     for(i in 1:num_preds){
 
-      predictions[i] <- pool_dict$get(universal_labels[i])
+      predictions[i] <- pool_dict$get(universal_labels[i],NA)
     }
   }
 

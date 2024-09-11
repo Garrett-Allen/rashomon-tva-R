@@ -8,16 +8,17 @@
 #' @export
 create_policies <- function(levels, arms = 0) {
   if (length(levels) == 1) {
-    arm1_levels <- seq.int(1, levels)
+    arm1_levels <- seq.int(0, levels)
     level_list <- rep(list(arm1_levels), arms)
   } else {
     # producing all levels for each arm
-    level_list <- lapply(levels, function(x) seq.int(1, x))
+    level_list <- lapply(levels, function(x) seq.int(0, x))
   }
 
   df <- expand.grid(level_list)
   asplit(as.matrix(df), 1)
 }
+
 #' @title Assign policy labels to data
 #' @description Assigns policy labels to data for use in create_policies_from_data. It will
 #' assign a unique id to each unique treatment combination present in data.
@@ -63,6 +64,34 @@ assign_universal_label <- function(data, arm_cols) {
   data[, universal_label := .GRP, by = arm_cols]
 
   return(data)
+}
+
+#' @title Prep data for use in raggregate_profiles() or find_rashomon_profile()
+#' @description Preps data for use in core functions.
+#' @param data A dataframe containing the column whose name you supply in value
+#' @param value The column name of the y values in data
+#' @param arm_cols A character vector containing the names of the arm columns
+#' @param R An integer (or vector) denoting the number of levels in each arm. If
+#' this value is an integer, it assumes each arm has the same number of levels.
+#' @param drop_unobserved_combinations Whether or not to drop factor combinations
+#' not observed in the data. If false, will return a dataframe with all factor
+#' combinations labelled, with NAs in value column for factor combinations implicitly missing.
+#' @export
+prep_data <- function(data, arm_cols, value, R, drop_unobserved_combinations = FALSE){
+
+  R_list = lapply(R, function(x) seq.int(0,x-1))
+  data[arm_cols] = mapply(factor, x = data[arm_cols], levels = R_list, SIMPLIFY = FALSE)
+
+  data <- tidyr::complete(data, !!!rlang::syms(arm_cols))
+  data <- assign_universal_label(data, arm_cols)
+  data <- assign_policy_label(data, arm_cols)
+  data <- dplyr::mutate(data, dplyr::across(dplyr::all_of(arm_cols), ~ as.numeric(.x) - 1))
+
+  if(drop_unobserved_combinations){
+    return(data[!is.na(get(value))])
+  }
+
+  data
 }
 
 #' @title Generate list of policies present in data
