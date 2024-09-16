@@ -17,7 +17,7 @@ pol_in_prof <- function(policies, profile, inactive = 0) {
 #' @param inactive The level in policies that denotes an arm is inactive.
 #'
 #' @returns The subset of a data that corresponds to the given profile
-#' @noRd
+#' @export
 subset_prof <- function(data, policy_list, profile, inactive = 0) {
   policies_in_profile <- pol_in_prof(policy_list, profile, inactive)
   subset(data, policies_in_profile[data$policy_label])

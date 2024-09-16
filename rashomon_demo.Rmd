@@ -1,0 +1,430 @@
+---
+title: "Rashomon Package Vignette"
+author: "Garrett Allen"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+
+# Introduction
+
+In this vignette, we will demonstrate how to use the package rashomontva to
+generate all "near-optimal" models in a factorial design setting; that is, 
+models that have loss lower than a particular threshold we set. All
+of the models in this package are currently simple mean models (your prediction
+for an observatio is the mean of the group it ends up belonging to, after 
+pooling different factorial combinations) but this can be extended to work with covariates.
+
+This package has been adapted from Apara Venkateswaran's python package `rashomon-partition-sets`,
+linked here: https://github.com/AparaV/rashomon-partition-sets. 
+
+Both packages are implementations of Venkateswaran, A., Sankar, A., Chandrasekhar, A. G., & McCormick, T. H. (2024). Robustly estimating heterogeneity in factorial data using Rashomon Partitions. arXiv preprint arXiv:2404.02141. URL: https://arxiv.org/abs/2404.02141. If you want more background on this package
+and how to use it, this is a good place to start. 
+
+This package is still in development, and this vignette will be updated as 
+use changes. In particular, the section for finding the Rashomon Set for a 
+single profile will likely be changed to be easier for the user in the near
+future, so look out for updates to the package on Github. I will post a new vignette
+whenever major features or added or how to use the package changes substansially. 
+
+In the near term, there will be some more QOL features added to make the package
+easier to use, and in the medium term, there will likely be speedups in the form
+of transitioning some code to Rcpp. If you need extremely fast speed for your
+project, I suggest trying to use Apara's `rashomon-partition-sets` package
+n Python, as it will be significantly faster due to R being bad at performing
+some key low level tasks. It is quite similar to this package, and he has
+his own guide for how to use the package posted as well. 
+
+If you have any questions or suggestions for improvement to the package please
+reach out to gpa5@uw.edu, or if you're in UW Stats/Biostats, reach out to me on Slack. 
+
+## Loading data, package, and prepping the data
+
+First, install the package. At the moment, this must be done via devtools, but
+this package will eventually be uploaded to CRAN. 
+
+```{r installing package}
+library(devtools)
+devtools::install_github("Garrett-Allen/rashomon-tva-R")
+```
+
+Now that the package is installed, we want to load it:
+
+```{r loading package}
+library(rashomontva)
+```
+
+Let's also load our sample data and view it:
+
+```{r data}
+library(tidyverse)
+
+data <- read.csv("output.csv") %>% 
+  rename(ID = X) %>% 
+  select(-D)
+head(data)
+```
+From the above data, we can see that we have a factorial design structure, where
+X1, X2, X3 are our covariates that each take a few discrete levels, and Y is our outcome variable.
+This means that we can use this package to find the Rashomon Set!
+
+In order to find the Rashomon Set, we will need to pass in a few parameters for our
+program. Specifically, we will need to pass in the number of levels in each of our
+covariates. The data can be missing factorial combinations (and the package
+will still output predictions!) but for the first example, we will work
+with complete data. 
+
+Let's find out the number of levels in each of our 3 arms (X0, X1, X2).
+
+```{r levels}
+data %>% 
+  count(X0)
+
+data %>% 
+  count(X1)
+
+data %>% 
+  count(X2)
+
+```
+
+From the above code, we see that X0 has 4 levels from 0 to 3, X1 has 3 levels
+from 0 to 2, and X2 also has 3 levels. Thus, if we let R denote the vector of 
+levels for each arm, R = (4,3,3) and M, the number of arms, is 3. 
+
+# Using the Package
+
+## Finding the Rashomon Set for a particular profile
+
+## THIS SECTION WILL BE CHANGED TO BE EASIER SOON, BUT THIS IS HOW TO CURRENTLY DO THIS:
+
+In the terminology of the Rashomon Set paper above, a profile refers to
+which arms are active; that is, our example, the profile (0,0,1) would
+refer to the factorial combinations in our data where X0 and X1 are both
+not active (zero) and X2 is active (1). Due to the way the method works, 
+we have to treat each profile separately when calculating the rashomon set,
+then aggregate them together to get the Rashomon Set for the entire dataset. In the
+following tutorial, we will demonstrate how to calculate the Rashomon Set for a
+singular profile.
+
+The key function we will use to do this is `find_rashomon_profile()`.
+
+First, let's look at the arguments this function takes:
+
+`data`: The dataset.
+`value`: The column name of the y values- this must be a character.
+`arm_cols`: A character vector containing the arm column names
+`M`: Number of arms *active*
+`R`: Vector of levels *for the active arms*
+`H`: Maximum number of pools allowed in a model. Set to Inf if you don't care about this. 
+`reg`: Regularization penalty on the number of pools: a value of 1 means
+that 1 is added to the loss for each additional pool the model thinks there
+is. 
+`profile`: Which profile do you want to calculate the rashomon set for?
+`policies`: Factorial combinations present in data for *active arms*
+`policy_means`: Dataframe that gives the means for each policy in our data. 
+`normalize`: Normalization factor- set this to zero if you are calculating 
+this for one profile. 
+`theta`: Threshold value. Models that have loss higher than this value will not
+be in the Rashomon Set. Set to Inf if you want all models. 
+`filtered`: Whether or not `data` is already filtered to be only observations in `profile`. 
+Defaults to FALSE. 
+`inactive` Level that denotes an inactive arm in data. Defaults to zero. 
+
+While there is a lot of arguments, most are fairly easy to specify. First, we'll
+set the variables that do not require speciality functions to do, and let's say
+that we want to do this for profile (0,0,1). For this profile, M = 1, R = 3, 
+and arm_cols = "X2"
+
+```{r set initial parameters}
+value <- "Y"
+arm_cols <- c("X2")
+M <- 1
+R <- 3
+H <- Inf
+reg <- 1
+profile <- c
+normalize <- 0
+```
+
+Next, we calculate our policies present in the data after filtering our data
+to only contain the active arms and assigning a policy and universal labels (a unique label for each
+policy) to our data. 
+
+```{r, calculate policies}
+
+#CHECK HOW MY SUBSETTIGN WORKS!!!!!!!!!!!!!!!!!
+
+
+#assigns labels and makes it easy for other functions to use: run this before
+#running other key functions
+
+#filter data to be in profile (this will be changed)
+data_filtered <- data %>% 
+    filter(X0 == 0, X1 == 0, X2 != 0)
+
+#label data and prep for future steps: 
+data_labeled <- rashomontva::prep_data(data_filtered, arm_cols, value, R, drop_unobserved_combinations = TRUE) %>% 
+  assign_policy_label(arm_cols) %>% 
+  assign_universal_label(arm_cols)
+
+#prior two steps must be done before any of the following code
+
+#generate policies from data
+policies <- rashomontva::create_policies_from_data(data_labeled, arm_cols)
+
+#generate policy means
+policy_means <- data_labeled %>% 
+  rashomontva::policy_means(value)
+
+```
+
+Our final step is to set theta: In practice, you should set theta by first
+fitting an optimal model on your data (e.g. a lasso), finding the loss,
+then setting theta to be some percentage higher than that loss, so you're 
+only getting models that are sufficiently good. In our case, we will arbitrarily
+set theta to be 13. 
+
+```{r setting theta}
+theta <- 13
+```
+
+The inactive level in our data is zero, so we can leave this as default, along
+with filtered. We now can pass in all of our arguments. 
+
+```{r, calculating rashomon set}
+
+r_profile <- find_rashomon_profile(data = data_labeled,
+                                   value = value,
+                                   arm_cols = arm_cols,
+                                   M = M,
+                                   R = R,
+                                   H = H,
+                                   reg = reg,
+                                   profile = profile,
+                                   policies = policies,
+                                   policy_means = policy_means,
+                                   theta = theta,
+                                   filtered = TRUE)
+```
+
+## Using the Rashomon Set for a profile
+
+We now have our rashomon set for this profile. This output is a RashomonSet object 
+Let's print what information we can see:
+
+```{r}
+# this print will be changed to be nicer
+print(r_profile)
+```
+We see that our object stores 5 things, and each are lists that store this
+information for each model in the Rashomon Set. Since we only have two policies
+(X2 = 1, X2 = 2) we only have two possible models, both of
+which happen to be in the Rashomon Set- one where both policies are in the same pool 
+(so our prediction is just the mean across the entire dataset) and one where the policies are
+in different pools, so that our model predicts the mean of each observation to 
+be dependent on whether X2 = 1 or X2 = 2. 
+
+We can extract the loss of each model in the RashomonSet via: 
+
+```{r}
+r_profile$losses
+```
+and the number of pools via:
+
+```{r}
+r_profile$num_pools
+```
+So, we can see that the model where we don't split (1 pools) does better than the model
+where we do split (just predict the overall mean.)
+
+The actual predictions for each model are stored in the pool_dictionary object,
+which maps the universal label (as assigned by assign_universal_label) to its
+predicted mean. Let's look at the pool dictionary for the second model, where
+there is a split. Under the hood, this dictionary is a collections::dict()
+object, and follows all the same documentation as this object. 
+
+```{r}
+dictionary <- r_profile$pool_dictionaries[[2]]
+
+print(dictionary$as_list())
+```
+So we see that, for our second model, it predicts -1.92 when the universal label
+is 1 (corresponding to policy (0,0,1)) and -1.97 when the universal label is 2. You
+can look at data_labeled to see this correspondence between universal_label
+and policy. 
+
+Finally, if we want to predict from one of our models, we would first
+process the data the same as above, then use the predict.RashomonSet function, which has arguments:
+
+`obj`: A Rashomon Set object
+`universal_label`: A vector of universal policy labels with which we want to predict. 
+`model_id`: The model in the rashomon set we want to the prediction from. 
+
+```{r predict}
+
+#predictions from model 1
+predict(r_profile, data_labeled$universal_label, model_id = 1)
+
+#predictions from model 2
+predict(r_profile, data_labeled$universal_label, model_id = 2)
+```
+
+## Calculating the Rashomon Set across the entire data (multiple profiles)
+
+Due to the way our method works, in order to find the Rashomon Set of near
+optimal models for the entire dataset, we must find the Rashomon Set separately
+for each profile. Thankfully, the user does not have to deal with this issue,
+as there is a function that already exists to calculate the Rashomon Set for
+the entire dataset by aggregating profile Rashomon Sets. This actually means that,
+if you want the Rashomon Set for each profile, you need not run the previous 
+code, since this will give that output and more. 
+
+For this section, we will use data that does not have all factorial combinations
+present, so show how we can do out of sample predictions. 
+
+The key function that does this is `aggregate_rashomon_profiles()`
+Let's look at the arguments for this function:
+
+`data`: The dataset
+`value`: The column name of the y values- this must be a character.
+`arm_cols`: A character vector containing the arm column names
+`M`: Number of arms 
+`R`: Vector of levels 
+`H`: Maximum number of pools allowed in a model. Set to Inf if you don't care about this. 
+`reg`: Regularization penalty on the number of pools: a value of 1 means
+that 1 is added to the loss for each additional pool the model thinks there
+is. 
+`theta`: Threshold value. Models that have loss higher than this value will not
+be in the Rashomon Set. Set to Inf if you want all models. 
+`bruteforce`: Does nothing, may be updated.
+`inactive` Level that denotes an inactive arm in data. Defaults to zero. 
+
+All these arguments are relatively straightforward. Let's specify them:
+
+```{r}
+data <- read.csv("data.csv") %>% 
+  select(-X)
+
+head(data)
+```
+In this data, we see that there are 4 arms (X1,X2,X3,X4), each with 5 levels
+(0,1,2,3,4). Some factorial combinations are missing, but this will not be an issue. 
+
+```{r specify parameters}
+value = "Y"
+arm_cols = c("X1", "X2", "X3", "X4")
+M = 4
+R = c(5,5,5,5)
+H = Inf
+reg = 1
+theta = 13
+
+```
+
+That's it! Now we can run the function:
+
+```{r}
+rset <- rashomontva::aggregate_rashomon_profiles(data = data,
+                                         value = value,
+                                         arm_cols = arm_cols,
+                                         M = M,
+                                         R = R,
+                                         H = H,
+                                         reg = reg,
+                                         theta = theta)
+```
+Now we have an object rset, which is a list with two elements. The second list
+`rset[[2]]` represents models that met the minimum loss to be a part of the Rashomon
+Set in their respective profile. That is, each entry in `rset[[2]]` is a Rashomon Set 
+object for each profile, where the threshold is the maximum loss that can occur
+on that profile and still have a model in the Rashomon Set overall. 
+
+`rset[[1]]` is a bit more complicated. The length of this list is the number
+of models present in the Rashomon Set overall for this data. Each entry in
+the list is itself a list, which gives the indices for model in each profile, so that
+the full model is specified for the entire dataset. That is, `rset[[1]][[i]][[j]]`
+gives the index of the model in the `rset[[2]][[j]]` that is a part of the ith model
+in the overall Rashomon Set. 
+
+Luckily, unless you have many, many models in the Rashomon Set, you will not need to work
+with this object, and can instead use a handy function called `make_rashomon_objects(rset)`
+to create a more easily interpretable list. 
+
+```{r}
+rashomon_objects <- make_rashomon_objects(rset)
+```
+
+Each object in this list is a Rashomon Set object that represents one model
+in the Rashomon Set given theta. It is now easy to perform some common tasks,
+like extracting losses or predicting. 
+
+For example, to extract losses, you just need to loop over `rashomon_objects`
+and sum:
+
+```{r}
+losses <- lapply(rashomon_objects, function(x) sum(as.numeric(x$losses)))
+
+head(losses)
+```
+If you want predictions from the ith model in the rashomon set, this is fairly 
+easy as well. There are two steps to doing this:
+
+First, run `prep_data()` on your new data. This will add universal labels
+to your data for use in the predict function, since the predict function
+will only work on the policy labels. The policy labels will always
+be the same for the same R, so you need not worry if you have different 
+data then the data you ran `aggregate_rashomon_profiles()` with.
+
+The arguments are self explanatory, except for `drop_unobserved_combinations`. When set to FALSE, 
+the dataframe returned will contain all possible factorial combinations implied by `R`, 
+including ones not present in the data, and will populate all other fields present
+for these unobserved factorial combinations as `NA`. This is useful if you want
+to see what the full predictions are across all factorial combinations. When set
+to TRUE, it will drop these observations, and just label the data so that
+you can use the `data$universal_labels` generated to make predictions. 
+
+In our case, to demonstrate predictions on unobserved observations, I will set
+this argument to FALSE. If you have testing data you just want to label, set
+this argument to TRUE so that it does not populate your data with any extraneous
+factorial combinations. 
+
+```{r}
+label_data <- prep_data(data, arm_cols, value, R, drop_unobserved_combinations = FALSE)
+slice(label_data, 1:20)
+```
+
+Then, just run `predict.RashomonSet()` on `rashomon_objects[[i]]` to get
+the predictions from the `i`th Rashomon Set. If you want to get all of the predictions,
+you can just loop this function over the number of models, and store the prediction
+each time you loop. 
+
+```{r}
+predictions <- predict(rashomon_objects[[5]], label_data$universal_label)
+```
+If there exists profiles present that have no data corresponding to them, the 
+`predict` function will output NA, since there must be at least 1 data point
+in a profile to have a prediction for policies in that profile. In our case, 
+this means that any policy with a 0 present will have an NA output, since our
+data above only has data for the profile (1,1,1,1). 
+
+If you want to ignore these NA values, filter out policies corresponding to profiles
+with no data before you run `predict()`. 
+
+These are the main functions of the package, but you can do more: for example,
+if you wanted to know the number of pools in each model of the rashomon set,
+you could loop over the class variable `num_pools` as we did with the losses. Feel
+free to look at the structure of a RashomonSet object to suit your own use case.
+
